@@ -9,13 +9,15 @@ Ask the server owner for an invite to the `slop-box` organization. Members can c
 ## Making a new game
 
 1. **Create a repo** in the org from [`slop-box/game-template`](https://github.com/slop-box/game-template): **Use this template → Create a new repository**, owner `slop-box`. It's a small working game (a buzzer) that already follows the contract, with the Dockerfile, publish workflow and a test.
-2. **Choose an id**: lowercase letters, digits and hyphens, e.g. `space-lawyers`. It becomes the game's address (`https://<id>.<domain>`) and image name. Check it isn't already in [games.json](games.json). `hub`, `www` and `caddy` are taken. Then run `npm run set-id -- space-lawyers` to put it everywhere in the repo.
+2. **Choose an id**: lowercase letters, digits and hyphens, e.g. `space-lawyers`. It becomes the game's address (`https://<id>.<domain>`) and image name. Check it isn't already in [games.json](games.json). `hub`, `www`, `caddy` and `cloudflared` are taken. Then run `npm run set-id -- space-lawyers` to put it everywhere in the repo.
 3. **Build it** so it follows the [game contract](GAME_CONTRACT.md). Run it locally with `npm start`, then open `http://<your-computer's-ip>:<port>/` on your phone, plus `/tv` on a second screen if the game uses a TV.
 4. **Push to `main`.** The workflow publishes `ghcr.io/slop-box/<id>`. After the first publish, open the package in the org's **Packages** tab and set **Package settings → Change visibility → Public**.
 5. **Open a pull request on this repo** that adds your game in three places. The template's README has the snippets, already filled in with your id:
    - `games.json`: name, players, whether it needs a TV, and a one-line blurb. Write `players` and `extraDevices` in lowercase (e.g. `"4+"`, `["tablet"]`), because they show as tags on the landing page, and all tags are lowercase.
    - `docker-compose.yml`: a service named `<id>` on the `slopbox` network, with no `ports:`, the Watchtower label, and a data volume if the game saves anything
    - `proxy/Caddyfile`: a block for `http://<id>.{$SLOPBOX_DOMAIN}` that starts with `import gate`, then proxies to `<id>:<port>`. The gate keeps the game closed until the host opens Slop Box for a party. Your game doesn't need any code for it.
+
+   The **Hub checks** run on your pull request and must pass before it can merge. They catch a missing piece, an id that doesn't match across the three files, `ports:` on a game, or a Caddy block without `import gate`. To run them before pushing, use `node scripts/check-config.js` (needs Docker).
 6. **After it's merged**, the server owner pulls the hub on the server, runs **Compose Up** and reloads Caddy. Your game is then live at `https://<id>.<domain>`.
 
 ## Updating your game

@@ -1,0 +1,43 @@
+# Checks every pull request to the hub before it can merge (make "Hub checks" a required status
+# check in the main branch ruleset). Also runs on pushes to main, so direct pushes get checked too.
+name: Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Hub checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Landing page scripts parse
+        run: node --check hub/public/app.js && node --check hub/public/status.js
+
+      - name: Hub and party gate tests
+        run: node hub/test.js
+
+      # Same Caddy image as the compose file. A broken Caddyfile would take every game down.
+      - name: Caddyfile is valid
+        run: >-
+          docker run --rm -e SLOPBOX_DOMAIN=example.com -v "$PWD/proxy:/etc/caddy:ro"
+          caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+      - name: games.json, compose file and Caddyfile agree
+        run: node scripts/check-config.js

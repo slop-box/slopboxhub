@@ -21,6 +21,7 @@ Slop Box runs on an Unraid server behind a Cloudflare Tunnel. The hub lives at `
 | [docker-compose.yml](docker-compose.yml) | Every container on the server: Caddy and each game |
 | [proxy/Caddyfile](proxy/Caddyfile) | Routes `<id>.<domain>` to each game's container |
 | [hub/](hub/) | The landing page and the party gate (`ghcr.io/slop-box/hub`). Run it locally with `node hub/server.js` and open `http://localhost:8080`. Test it with `node hub/test.js`. |
+| [scripts/check-config.js](scripts/check-config.js) | Checks that `games.json`, the compose file and the Caddyfile agree and follow the game contract. It runs on every pull request ([check.yml](.github/workflows/check.yml)). Run it locally with `node scripts/check-config.js` (needs Docker). |
 | [.env.example](.env.example) | The settings and secrets the server's `.env` needs |
 | [PLAN.md](PLAN.md) | The build-out plan, step by step |
 

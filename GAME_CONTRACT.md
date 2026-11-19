@@ -4,7 +4,7 @@ Every Slop Box game follows these rules. They let the hub run, route, gate and u
 
 ## Identity
 
-1. **One id.** Lowercase letters, digits and hyphens, e.g. `quickpic`. `hub`, `www` and `caddy` are taken. The id is used everywhere:
+1. **One id.** Lowercase letters, digits and hyphens, e.g. `quickpic`. `hub`, `www`, `caddy` and `cloudflared` are taken. The id is used everywhere:
 
    | Where | Value |
    |---|---|

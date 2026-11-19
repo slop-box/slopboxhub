@@ -311,7 +311,7 @@ Wait for a third game before pulling shared code (QR, rooms, reconnect) into an 
 > **Status (2026-11-19):** Built at `c:\git-repos\game-template` and staged.
 > - **The demo game** is a buzzer: phones join and buzz, and the TV shows the QR code, the players and the winner. It has no dependencies and uses server-sent events plus `POST /action`, like QuickPic. It runs one game per server, with no room codes.
 > - **Players** keep a secret key on their phone. Others only see a short id derived from it, so nobody can buzz as someone else.
-> - **`npm run set-id -- <id>`** renames the placeholder `my-game` everywhere. It refuses invalid ids and `hub`, `www` and `caddy`.
+> - **`npm run set-id -- <id>`** renames the placeholder `my-game` everywhere. It refuses invalid ids and `hub`, `www`, `caddy` and `cloudflared`.
 > - **`npm test`** plays a short game against a real server, and the publish workflow runs it.
 > - **The template's own workflow** skips publishing when it runs in `slop-box/game-template`.
 > - **QR codes** use QuickPic's `qr.js`.
@@ -321,8 +321,9 @@ Wait for a third game before pulling shared code (QR, rooms, reconnect) into an 
 
 - [ ] Invite friends to the org, and turn on **Org settings → Member privileges → Repository creation** so they can create their own game repos. Each friend is admin on their own game's repo and pushes to it with no approval from anyone.
 - [ ] Give friends **Write** access to the hub repo, so they can push branches and open pull requests.
-- [ ] Protect the hub's `main` branch (**Settings → Rules → Rulesets**). Require a pull request, 1 approval and review from code owners, and block force pushes. Add yourself to the bypass list. GitHub doesn't let anyone approve their own pull request, and you're the only code owner, so without the bypass your own changes could never merge.
+- [ ] Protect the hub's `main` branch with a ruleset in the **hub repo's** settings (**Settings → Rules → Rulesets**). Org-level rulesets need a paid plan; repo-level ones are free on public repos. Require a pull request, 1 approval and review from code owners, and block force pushes. Add yourself to the bypass list. GitHub doesn't let anyone approve their own pull request, and you're the only code owner, so without the bypass your own changes could never merge.
 - [ ] Each game repo sets its own rules. Friends push to their own repos with no approval.
+- [ ] Once **Hub checks** has run once, add it to the ruleset under **Require status checks to pass**. The check comes from `.github/workflows/check.yml`, which runs `scripts/check-config.js`, `caddy validate` and the hub tests on every pull request.
 - [ ] Write `CONTRIBUTING.md` with the flow:
   1. Create a repo from `game-template` and set the game id.
   2. Build and test locally with `npm start`.
