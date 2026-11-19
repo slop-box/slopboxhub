@@ -8,7 +8,7 @@
 #   - Watchtower enable label. The update-lock hook label is added in PLAN.md Step 11, once the
 #     hub serves /update-allowed (adding it earlier would block every update).
 
-name: slopbox
+name: slopboxhub   # matches the Compose Manager stack name, so containers are slopboxhub-<service>-1
 
 networks:
   slopbox:

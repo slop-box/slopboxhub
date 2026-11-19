@@ -39,9 +39,9 @@ phone / TV ──HTTPS──▶ Cloudflare Tunnel ──▶ Caddy ──▶ <id>
 
 1. Clone this repo onto the server, e.g. `/mnt/user/appdata/slopbox/hub`.
 2. Copy `.env.example` to `.env` and fill it in.
-3. In **Compose Manager**, click **Add New Stack**, name it `slopbox`, and set **External folder** (called **Stack Directory** in some versions) to the cloned repo. The compose file uses paths relative to the repo (`./proxy/Caddyfile`), so a copied compose file won't find them. Afterwards, **Edit Stack → Compose File** should show the hub's file. If your version has neither option, point the stack at the repo from the terminal:
+3. In **Compose Manager**, click **Add New Stack**, name it `slopboxhub`, and set **External folder** (called **Stack Directory** in some versions) to the cloned repo. The compose file uses paths relative to the repo (`./proxy/Caddyfile`), so a copied compose file won't find them. Afterwards, **Edit Stack → Compose File** should show the hub's file. If your version has neither option, point the stack at the repo from the terminal:
    ```bash
-   P=/boot/config/plugins/compose.manager/projects/slopbox
+   P=/boot/config/plugins/compose.manager/projects/slopboxhub
    printf '%s' /mnt/user/appdata/slopbox/hub > "$P/indirect"
    rm "$P/docker-compose.yml"
    ```
