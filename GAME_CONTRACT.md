@@ -31,7 +31,7 @@ Every Slop Box game follows these rules. They let the hub run, route, gate and u
 
 ## Pages
 
-10. **Phones at `/`, TV at `/tv`.** Extra device pages are fine (QuickPic has `/draw` for its tablet).
+10. **Players start at `/`.** A TV is optional. If the game uses one, its page is at `/tv`, and `games.json` sets `"needsTv": true`. Extra device pages are fine (QuickPic has `/draw` for its tablet).
 11. **Works behind HTTPS and a proxy.** The browser is on `https://`, but the container only sees plain HTTP from Caddy.
     - Build every URL from `location.origin`. Never hard-code a host, port or `http://`.
     - Open WebSockets with `(location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'`.

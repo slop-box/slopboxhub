@@ -1,6 +1,6 @@
 # Slop Box
 
-Party games made by a group of friends, played with a TV and everyone's phones. The TV opens a game's `/tv` page in its web browser, and players join by scanning the QR code it shows.
+Party games made by a group of friends, played on everyone's phones. Some games also use a TV: it opens the game's `/tv` page in its web browser, and players join by scanning the QR code it shows.
 
 Slop Box runs on an Unraid server behind a Cloudflare Tunnel. The hub lives at `https://<domain>`, and each game at `https://<id>.<domain>`.
 

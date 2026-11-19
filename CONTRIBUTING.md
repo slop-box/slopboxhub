@@ -10,7 +10,7 @@ Ask the server owner for an invite to the `slop-box` organization. Members can c
 
 1. **Create a repo** in the org. Once `slop-box/game-template` exists, start from it (**Use this template**). Until then, copy the setup from QuickPic.
 2. **Choose an id**: lowercase letters, digits and hyphens, e.g. `space-lawyers`. It becomes the game's address (`https://<id>.<domain>`) and image name. Check it isn't already in [games.json](games.json).
-3. **Build it** so it follows the [game contract](GAME_CONTRACT.md). Run it locally with `npm start`, then open `http://localhost:<port>/tv` and `http://localhost:<port>/` on your phone.
+3. **Build it** so it follows the [game contract](GAME_CONTRACT.md). Run it locally with `npm start`, then open `http://<your-computer's-ip>:<port>/` on your phone, plus `/tv` on a second screen if the game uses a TV.
 4. **Push to `main`.** The workflow publishes `ghcr.io/slop-box/<id>`. After the first publish, open the package in the org's **Packages** tab and set **Package settings → Change visibility → Public**.
 5. **Open a pull request on this repo** that adds your game in three places:
    - `games.json`: name, players, whether it needs a TV, and a one-line blurb

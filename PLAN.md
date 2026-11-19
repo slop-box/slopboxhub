@@ -113,7 +113,7 @@ Example `games.json` entry. The `id` is also the subdomain, so there's no separa
 1. **One id.** Lowercase letters, digits and hyphens. It's the game's subdomain (`<id>.<domain>`), image (`ghcr.io/slop-box/<id>`), compose service name and data folder.
 2. **One container**, built from a Dockerfile in the game's repo.
 3. **Listens on `$PORT`.** The default port doesn't matter, because Caddy reaches containers by name on a shared Docker network, not through host ports.
-4. **Routes:** phones at `/`, TV at `/tv`. Other device pages are allowed (QuickPic has `/draw`).
+4. **Routes:** players start at `/`. A TV is optional. Games that use one put its page at `/tv` and set `"needsTv": true` in `games.json`. Other device pages are allowed (QuickPic has `/draw`).
 5. **`GET /healthz`** returns `200` when the game is ready. The Dockerfile `HEALTHCHECK` uses it.
 6. **Works behind HTTPS and a proxy:**
    - Build URLs from `location.origin`, never a hard-coded host or port.
@@ -209,7 +209,7 @@ Do this for each game:
 
 - [ ] Build a page at `<domain>` that reads `games.json` and shows a card per game (name, players, "needs a TV", blurb), each linking to `https://<id>.<domain>`.
 - [ ] Make it readable on a phone and also on a TV browser driven by a remote (arrow keys plus OK).
-- [ ] Give each card a "TV" link that goes straight to `https://<id>.<domain>/tv`, so the TV only needs one bookmark (the hub).
+- [ ] For games that use a TV, give the card a "TV" link that goes straight to `https://<id>.<domain>/tv`, so the TV only needs one bookmark (the hub). Games without a TV only get a "Play" link.
 - [ ] Serve it from a small Node container (`hub`), built by the shared workflow like a game. The same container runs the party gate (Step 8).
 - [ ] The landing page is always reachable. It shows whether games are open and how much time is left.
 
@@ -270,12 +270,12 @@ When `/check` doesn't return 2xx, Caddy sends its response (the redirect) to the
 
 Create `slop-box/game-template`, marked as a **template repository** in GitHub settings. It contains:
 
-- [ ] A minimal Node server that already follows the contract: `$PORT`, `/`, `/tv`, `/healthz`, WebSocket, room code, QR join and phone reconnect
+- [ ] A minimal Node server that already follows the contract: `$PORT`, `/`, an optional `/tv` (easy to delete for phone-only games), `/healthz`, WebSocket, room code, QR join and phone reconnect
 - [ ] A Dockerfile with the non-root user, `/app/data`, the Watchtower label and the healthcheck
 - [ ] The short workflow calling `publish-game.yml`, with the manual **Deploy now** option
 - [ ] The game id as a single placeholder (`GAME_ID`) in the workflow, `package.json` and README. Setting it once gives the game its image name and its address, `https://<id>.<domain>`.
 - [ ] A ready-to-paste snippet for the hub pull request: the `games.json` entry, the compose service (with the `slopbox` network, Watchtower labels including the update-lock hook, and data mount) and the Caddy route (with `import gate`), each filled in from the id
-- [ ] A README checklist: choose the id, run `npm start`, open `/tv` and `/`, push, then open the hub pull request
+- [ ] A README checklist: choose the id, run `npm start`, open `/` (and `/tv` if the game uses a TV), push, then open the hub pull request
 
 Wait for a third game before pulling shared code (QR, rooms, reconnect) into an npm package. Copying from the template is fine until then.
 
