@@ -1,0 +1,56 @@
+# Slop Box stack, run on Unraid with the Compose Manager plugin.
+# Secrets and the domain come from .env next to this file (copy .env.example). Never commit .env.
+#
+# Rules for every game service (see GAME_CONTRACT.md):
+#   - service name = game id = subdomain = image name. Caddy reaches the game at <id>:<port>.
+#   - on the slopbox network, and NO `ports:`. Caddy must be the only way in, or the party
+#     gate can be skipped from the home network.
+#   - Watchtower enable label. The update-lock hook label is added in PLAN.md Step 11, once the
+#     hub serves /update-allowed (adding it earlier would block every update).
+
+name: slopbox
+
+networks:
+  slopbox:
+    name: slopbox   # fixed name so the existing cloudflared and Watchtower containers can join it
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    networks: [slopbox]
+    environment:
+      SLOPBOX_DOMAIN: ${SLOPBOX_DOMAIN}
+    volumes:
+      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # The hub repo itself, for the placeholder landing page and games.json (until PLAN.md Step 7)
+      - ./:/srv/repo:ro
+      - /mnt/user/appdata/slopbox/caddy:/data
+    # No Watchtower label: update Caddy by hand (Compose Pull, then Compose Up) when nothing is running.
+
+  quickpic:
+    image: ghcr.io/slop-box/quickpic:latest
+    restart: unless-stopped
+    networks: [slopbox]
+    environment:
+      ADMIN_PASSWORD: ${QUICKPIC_ADMIN_PASSWORD:-}
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+    mem_limit: 512m
+    cpus: 1.0
+
+  debatebros:
+    # Still under the personal account until DebateBros moves to the org (PLAN.md Step 1).
+    # That image is private, so Unraid needs the existing ghcr.io login until then.
+    image: ghcr.io/hyrumrichardson/debatebros:latest
+    restart: unless-stopped
+    networks: [slopbox]
+    environment:
+      PUID: "99"
+      PGID: "100"
+    volumes:
+      - /mnt/user/appdata/slopbox/debatebros:/app/data
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+    mem_limit: 512m
+    cpus: 1.0

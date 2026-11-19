@@ -1,0 +1,42 @@
+# Cloudflare Tunnel sends <domain> and *.<domain> here over plain HTTP.
+# Cloudflare handles HTTPS, so Caddy never requests certificates.
+# SLOPBOX_DOMAIN comes from .env (e.g. example.com, no scheme).
+
+{
+	auto_https off
+}
+
+# Party gate (PLAN.md Step 8). Once the hub container serves /check, add `import gate`
+# as the first line of every game block below.
+(gate) {
+	forward_auth hub:80 {
+		uri /check
+	}
+}
+
+# Hub: landing page. Static placeholder served from the repo until the hub container
+# exists (PLAN.md Step 7).
+http://{$SLOPBOX_DOMAIN} {
+	handle /games.json {
+		root * /srv/repo
+		file_server
+	}
+	handle {
+		root * /srv/repo/hub/public
+		file_server
+	}
+}
+
+# One block per game: http://<id>.{$SLOPBOX_DOMAIN} -> <id>:<port>
+http://quickpic.{$SLOPBOX_DOMAIN} {
+	reverse_proxy quickpic:3000
+}
+
+http://debatebros.{$SLOPBOX_DOMAIN} {
+	reverse_proxy debatebros:3001
+}
+
+# Anything else under the domain (typos, removed games) goes to the hub.
+http:// {
+	redir https://{$SLOPBOX_DOMAIN} 302
+}

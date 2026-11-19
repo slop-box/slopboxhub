@@ -1,0 +1,20 @@
+[
+  {
+    "id": "quickpic",
+    "name": "QuickPic",
+    "players": "4+",
+    "needsTv": true,
+    "extraDevices": ["tablet"],
+    "blurb": "Draw blind on a tablet while your team shouts guesses at the TV.",
+    "repo": "https://github.com/slop-box/QuickPic"
+  },
+  {
+    "id": "debatebros",
+    "name": "Debate Bros",
+    "players": "2–12, plus audience",
+    "needsTv": true,
+    "extraDevices": [],
+    "blurb": "Argue a goofy topic on stage while the crowd scores you. Lose the debate and get launched off the screen.",
+    "repo": "https://github.com/hyrumrichardson/DebateBros"
+  }
+]
