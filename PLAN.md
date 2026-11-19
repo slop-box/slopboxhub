@@ -308,6 +308,15 @@ Wait for a third game before pulling shared code (QR, rooms, reconnect) into an 
 
 **Done when:** a friend can click "Use this template", set the id, push, and get an image published under the org.
 
+> **Status (2026-11-19):** Built at `c:\git-repos\game-template` and staged.
+> - **The demo game** is a buzzer: phones join and buzz, and the TV shows the QR code, the players and the winner. It has no dependencies and uses server-sent events plus `POST /action`, like QuickPic. It runs one game per server, with no room codes.
+> - **Players** keep a secret key on their phone. Others only see a short id derived from it, so nobody can buzz as someone else.
+> - **`npm run set-id -- <id>`** renames the placeholder `my-game` everywhere. It refuses invalid ids and `hub`, `www` and `caddy`.
+> - **`npm test`** plays a short game against a real server, and the publish workflow runs it.
+> - **The template's own workflow** skips publishing when it runs in `slop-box/game-template`.
+> - **QR codes** use QuickPic's `qr.js`.
+> - **Left:** create the `slop-box/game-template` repo, push it, and tick **Template repository** in its settings.
+
 ## Step 10: Onboard friends
 
 - [ ] Invite friends to the org, and turn on **Org settings → Member privileges → Repository creation** so they can create their own game repos. Each friend is admin on their own game's repo and pushes to it with no approval from anyone.
