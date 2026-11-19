@@ -7,7 +7,6 @@ Slop Box runs on an Unraid server behind a Cloudflare Tunnel. The hub lives at `
 | Game | Address | Repo |
 |---|---|---|
 | QuickPic | `quickpic.<domain>` | [slop-box/QuickPic](https://github.com/slop-box/QuickPic) |
-| Debate Bros | `debatebros.<domain>` | [DebateBros](https://github.com/hyrumrichardson/DebateBros) (moving to the org) |
 
 ## For game makers
 

@@ -52,7 +52,7 @@ Both games use root paths everywhere (`/style.css`, `/ws`, `/action`, `/qr`, `/a
 
 ## Step 1: Create the GitHub org and move the existing games
 
-> **Status (2026-11-19):** QuickPic is being transferred now. DebateBros will move later, so until then it keeps publishing to `ghcr.io/hyrumrichardson/debatebros`, and Unraid keeps pulling that image.
+> **Status (2026-11-19):** QuickPic is being transferred now. **Only QuickPic for now:** make no changes to the DebateBros repo, and leave it out of the hub's `games.json`, compose file and Caddyfile. DebateBros moves later. Until then it keeps publishing to `ghcr.io/hyrumrichardson/debatebros`, and its existing Unraid container stays as it is.
 
 1. [ ] Create a free GitHub organization named `slop-box`.
 2. [ ] Transfer `hyrumrichardson/QuickPic` and `hyrumrichardson/DebateBros` into it. GitHub redirects the old repo URLs, so existing clones keep working, but update the remotes anyway: `git remote set-url origin https://github.com/slop-box/<Repo>.git`.
@@ -160,8 +160,11 @@ jobs:
     secrets: inherit
 ```
 
-- [ ] Write the reusable workflow.
-- [ ] Switch QuickPic and DebateBros over to it.
+- [x] Write the reusable workflow (`.github/workflows/publish-game.yml`). It also publishes `:sha-<full commit>`, which QuickPic's rollback docs use, and checks that the id is valid.
+- [x] Switch QuickPic over to it (`.github/workflows/publish.yml`, renamed from `docker.yml`).
+- [ ] Switch DebateBros over to it when it moves to the org. Pass its bot tests as `test-command: npm ci && npm test && node test/bots.js 6 && node test/bots.js 2`.
+
+> **Status (2026-11-19):** Both workflows pass actionlint. **Push the hub first:** QuickPic's workflow calls `slop-box/slopboxhub/...@main`, so it fails until the hub's `main` has `publish-game.yml`. Until the deploy secrets exist (Step 11), **Deploy now** only prints a warning and the image still publishes.
 
 **Done when:** a push to either game publishes its image through the shared workflow.
 
@@ -346,6 +349,7 @@ There are two tokens, so devs can never call Watchtower directly:
 | Token | Lives in | Used for |
 |---|---|---|
 | `SLOPBOX_DEPLOY_TOKEN` | Org-level Actions secret, plus the server's `.env` | Devs' workflows → hub `/deploy` |
+| `SLOPBOX_DEPLOY_URL` | Org-level Actions secret (`https://<domain>/deploy`) | Where the shared workflow sends deploys. It's a secret so the domain stays out of the public hub repo. |
 | `WATCHTOWER_API_TOKEN` | The server's `.env`, plus your Watchtower's settings | Hub → Watchtower |
 
 - [ ] Add `/deploy` and `/update-allowed` to the `hub` container. `/deploy` is on the bare domain, so it's outside the party gate. Allow at most 10 deploy calls per minute.

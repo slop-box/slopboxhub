@@ -39,18 +39,4 @@ services:
     mem_limit: 512m
     cpus: 1.0
 
-  debatebros:
-    # Still under the personal account until DebateBros moves to the org (PLAN.md Step 1).
-    # That image is private, so Unraid needs the existing ghcr.io login until then.
-    image: ghcr.io/hyrumrichardson/debatebros:latest
-    restart: unless-stopped
-    networks: [slopbox]
-    environment:
-      PUID: "99"
-      PGID: "100"
-    volumes:
-      - /mnt/user/appdata/slopbox/debatebros:/app/data
-    labels:
-      com.centurylinklabs.watchtower.enable: "true"
-    mem_limit: 512m
-    cpus: 1.0
+  # DebateBros joins once it moves to the slop-box org (PLAN.md Step 1).
