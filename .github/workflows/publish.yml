@@ -1,0 +1,32 @@
+# Publish the hub's own image (ghcr.io/slop-box/hub) with the same shared workflow the games use.
+# Only runs when the hub app, games.json or the workflows change.
+name: Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - hub/**
+      - games.json
+      - .github/workflows/**
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy to the server now
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    uses: ./.github/workflows/publish-game.yml
+    with:
+      id: hub
+      dockerfile: hub/Dockerfile
+      # Checks the hub's code parses and games.json is a valid list before publishing.
+      test-command: node --check hub/server.js && node --check hub/public/app.js && node -e "if (!Array.isArray(JSON.parse(require('fs').readFileSync('games.json','utf8')))) throw new Error('games.json must be an array')"
+      deploy: ${{ inputs.deploy == true }}
+    secrets: inherit

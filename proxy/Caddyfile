@@ -9,22 +9,14 @@
 # Party gate (PLAN.md Step 8). Once the hub container serves /check, add `import gate`
 # as the first line of every game block below.
 (gate) {
-	forward_auth hub:80 {
+	forward_auth hub:8080 {
 		uri /check
 	}
 }
 
-# Hub: landing page. Static placeholder served from the repo until the hub container
-# exists (PLAN.md Step 7).
+# Hub: landing page (and later the party gate and the deploy route).
 http://{$SLOPBOX_DOMAIN} {
-	handle /games.json {
-		root * /srv/repo
-		file_server
-	}
-	handle {
-		root * /srv/repo/hub/public
-		file_server
-	}
+	reverse_proxy hub:8080
 }
 
 # One block per game: http://<id>.{$SLOPBOX_DOMAIN} -> <id>:<port>

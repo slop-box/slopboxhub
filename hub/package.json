@@ -1,0 +1,13 @@
+{
+  "name": "slopbox-hub",
+  "version": "1.0.0",
+  "description": "Slop Box landing page (and later the party gate).",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

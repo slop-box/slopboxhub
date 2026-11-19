@@ -39,11 +39,26 @@ services:
     environment:
       SLOPBOX_DOMAIN: ${SLOPBOX_DOMAIN}
     volumes:
-      - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
-      # The hub repo itself, for the placeholder landing page and games.json (until PLAN.md Step 7)
-      - ./:/srv/repo:ro
+      # The folder, not the single file: git replaces files on pull, and a single-file mount would
+      # keep showing the old copy. After pulling a Caddyfile change, reload Caddy (see README).
+      - ./proxy:/etc/caddy:ro
       - /mnt/user/appdata/slopbox/caddy:/data
     # No Watchtower label: update Caddy by hand (Compose Pull, then Compose Up) when nothing is running.
+
+  # Landing page at <domain>. Later also the party gate and the deploy route (PLAN.md Steps 8 and 11).
+  hub:
+    image: ghcr.io/slop-box/hub:latest
+    restart: unless-stopped
+    networks: [slopbox]
+    environment:
+      # Read games.json from the cloned repo, so `git pull` updates the list without a new image.
+      GAMES_FILE: /srv/repo/games.json
+    volumes:
+      - ./:/srv/repo:ro
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+    mem_limit: 256m
+    cpus: 0.5
 
   quickpic:
     image: ghcr.io/slop-box/quickpic:latest

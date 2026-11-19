@@ -177,7 +177,7 @@ jobs:
    {
      auto_https off
    }
-   http://<domain>             { reverse_proxy hub:80 }
+   http://<domain>             { reverse_proxy hub:8080 }
    http://quickpic.<domain>    { reverse_proxy quickpic:3000 }
    http://debatebros.<domain>  { reverse_proxy debatebros:3001 }
    ```
@@ -226,6 +226,13 @@ Do this for each game:
 
 **Done when:** the TV can open `<domain>`, pick a game, and land on that game's TV page.
 
+> **Status (2026-11-19):** Built and tested locally (routes, phone and TV layouts).
+> - **`hub/`:** a plain Node server on port 8080 with `/healthz`, plus the page, styles and arrow-key navigation for TV remotes.
+> - **`games.json`:** read from the cloned repo (`GAMES_FILE`), so `git pull` updates it without a new image.
+> - **Publishing:** the hub's own `publish.yml` builds `ghcr.io/slop-box/hub` with the shared workflow, which now has a `dockerfile` input.
+> - **Caddy:** now mounts the `proxy/` folder, so a pulled Caddyfile change can be reloaded.
+> - **Not yet:** showing whether games are open. That waits for the gate (Step 8).
+
 ## Step 8: Add the party gate
 
 Games are closed until an admin opens them. One admin login opens every game for everyone for 4 hours. Guests never see a login. The check happens in Caddy, so no game needs code for it.
@@ -243,7 +250,7 @@ Games are closed until an admin opens them. One admin login opens every game for
 
 ```
 (gate) {
-  forward_auth hub:80 {
+  forward_auth hub:8080 {
     uri /check
   }
 }

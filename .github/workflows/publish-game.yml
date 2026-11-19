@@ -28,6 +28,10 @@ on:
         description: Shell command that must pass before publishing, e.g. "npm ci && npm test". Empty skips tests.
         type: string
         default: ""
+      dockerfile:
+        description: Path to the Dockerfile, relative to the repo root (the build context).
+        type: string
+        default: Dockerfile
       node-version:
         description: Node version for the test step.
         type: string
@@ -99,6 +103,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ inputs.dockerfile }}
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}

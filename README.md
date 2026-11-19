@@ -20,7 +20,7 @@ Slop Box runs on an Unraid server behind a Cloudflare Tunnel. The hub lives at `
 | [games.json](games.json) | The list of games the landing page shows |
 | [docker-compose.yml](docker-compose.yml) | Every container on the server: Caddy and each game |
 | [proxy/Caddyfile](proxy/Caddyfile) | Routes `<id>.<domain>` to each game's container |
-| [hub/](hub/) | The landing page. It will also run the party gate and the deploy hook. |
+| [hub/](hub/) | The landing page (`ghcr.io/slop-box/hub`). It will also run the party gate and the deploy route. Run it locally with `node hub/server.js` and open `http://localhost:8080`. |
 | [.env.example](.env.example) | The settings and secrets the server's `.env` needs |
 | [PLAN.md](PLAN.md) | The build-out plan, step by step |
 
@@ -48,4 +48,17 @@ phone / TV ──HTTPS──▶ Cloudflare Tunnel ──▶ Caddy ──▶ <id>
    Then **Compose Up**. Don't edit the compose file from Compose Manager's editor, because it now edits the repo. Change it through a pull request, then `git pull` on the server.
 4. In the Cloudflare Zero Trust dashboard, Slop Box's tunnel routes `<domain>` and `*.<domain>` to `http://caddy:80`. Its connector runs in this stack as `cloudflared`, using `CLOUDFLARE_TUNNEL_TOKEN` from `.env`.
 
-After a hub pull request is merged: `git pull` in the hub folder on the server, then **Compose Up**.
+After a hub pull request is merged, update the server:
+
+```bash
+cd /mnt/user/appdata/slopbox/hub && git pull
+```
+
+Then, depending on what changed:
+
+| Changed | Do this |
+|---|---|
+| `games.json` | Nothing. The hub reads it on the next page load. |
+| `docker-compose.yml` | **Compose Up** in Compose Manager. |
+| `proxy/Caddyfile` | `docker exec slopboxhub-caddy-1 caddy reload --config /etc/caddy/Caddyfile` |
+| `hub/` | Nothing. The workflow publishes a new hub image, and Watchtower picks it up. |
