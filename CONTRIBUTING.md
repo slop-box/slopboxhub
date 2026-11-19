@@ -15,7 +15,7 @@ Ask the server owner for an invite to the `slop-box` organization. Members can c
 5. **Open a pull request on this repo** that adds your game in three places:
    - `games.json`: name, players, whether it needs a TV, and a one-line blurb. Write `players` and `extraDevices` in lowercase (e.g. `"4+"`, `["tablet"]`), because they show as tags on the landing page, and all tags are lowercase.
    - `docker-compose.yml`: a service named `<id>` on the `slopbox` network, with no `ports:`, the Watchtower label, and a data volume if the game saves anything
-   - `proxy/Caddyfile`: a block for `http://<id>.{$SLOPBOX_DOMAIN}` that proxies to `<id>:<port>`
+   - `proxy/Caddyfile`: a block for `http://<id>.{$SLOPBOX_DOMAIN}` that starts with `import gate`, then proxies to `<id>:<port>`. The gate keeps the game closed until the host opens Slop Box for a party. Your game doesn't need any code for it.
 6. **After it's merged**, the server owner pulls the hub on the server, runs **Compose Up** and reloads Caddy. Your game is then live at `https://<id>.<domain>`.
 
 ## Updating your game

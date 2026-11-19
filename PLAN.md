@@ -284,6 +284,15 @@ When `/check` doesn't return 2xx, Caddy sends its response (the redirect) to the
 - [ ] After the window ends, a phone that joined earlier keeps playing, and a new phone gets the closed page.
 - [ ] **Close now** blocks both.
 
+> **Status (2026-11-19):** Built in `hub/gate.js` and `hub/server.js`. `node hub/test.js` passes all 19 checks, and the hub's Publish workflow runs it before every build.
+> - **Background requests** (live updates, actions, WebSockets) without a pass are let through while games are open, so a game never breaks mid-round. When games are closed they get a `403`.
+> - **Page loads** without a pass are sent to `/pass` (games open) or `/closed` (games closed).
+> - **The closed page** checks every 10 seconds and lets the guest in as soon as the host opens the games.
+> - **The gate state** lives in a Docker named volume (`hub-data`), because an appdata folder would be owned by root.
+> - **The landing page** shows a banner: open with time left, closing, or closed.
+> - **Caddy:** the QuickPic route has `import gate`.
+> - **Left:** the on-device checks above, after deploying.
+
 ## Step 9: Make a game template repo
 
 Create `slop-box/game-template`, marked as a **template repository** in GitHub settings. It contains:

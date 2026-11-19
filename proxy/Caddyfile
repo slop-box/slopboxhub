@@ -6,8 +6,8 @@
 	auto_https off
 }
 
-# Party gate (PLAN.md Step 8). Once the hub container serves /check, add `import gate`
-# as the first line of every game block below.
+# Party gate (PLAN.md Step 8). Every game block starts with `import gate`: Caddy asks the hub
+# before each request, and the hub lets it through, sends it to /pass, or to the closed page.
 (gate) {
 	forward_auth hub:8080 {
 		uri /check
@@ -21,6 +21,7 @@ http://{$SLOPBOX_DOMAIN} {
 
 # One block per game: http://<id>.{$SLOPBOX_DOMAIN} -> <id>:<port>
 http://quickpic.{$SLOPBOX_DOMAIN} {
+	import gate
 	reverse_proxy quickpic:3000
 }
 

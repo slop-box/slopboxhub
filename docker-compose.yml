@@ -14,6 +14,9 @@ networks:
   slopbox:
     name: slopbox   # fixed name so the existing Watchtower can join it (PLAN.md Step 11)
 
+volumes:
+  hub-data:         # party gate state (open/closed), so a hub restart doesn't close the games
+
 services:
   # Cloudflare Tunnel connector for Slop Box's own tunnel. The tunnel's routes (set in the
   # Cloudflare dashboard) send <domain> and *.<domain> to http://caddy:80.
@@ -53,8 +56,15 @@ services:
     environment:
       # Read games.json from the cloned repo, so `git pull` updates the list without a new image.
       GAMES_FILE: /srv/repo/games.json
+      SLOPBOX_DOMAIN: ${SLOPBOX_DOMAIN}
+      SLOPBOX_ADMIN_PASSWORD: ${SLOPBOX_ADMIN_PASSWORD}
+      SLOPBOX_GATE_SECRET: ${SLOPBOX_GATE_SECRET}
+      GATE_OPEN_HOURS: ${GATE_OPEN_HOURS:-4}
+      GATE_GRACE_MINUTES: ${GATE_GRACE_MINUTES:-60}
     volumes:
       - ./:/srv/repo:ro
+      # Named volume (not an appdata folder) so it starts out writable by the hub's non-root user.
+      - hub-data:/app/data
     labels:
       com.centurylinklabs.watchtower.enable: "true"
     mem_limit: 256m

@@ -2,3 +2,5 @@
 # Compose Manager on Unraid may write this next to the compose file
 docker-compose.override.yml
 node_modules/
+# Party gate state when running the hub locally
+hub/data/

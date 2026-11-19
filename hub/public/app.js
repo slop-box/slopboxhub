@@ -56,6 +56,38 @@
       list.appendChild(el('li', { 'class': 'note' }, 'Couldn’t load the games. Refresh to try again.'));
     });
 
+  // Party gate banner: open (with time left), closing, or closed with a host login link.
+  var banner = document.getElementById('gate');
+  function minutesLeft(ts) {
+    var mins = Math.max(0, Math.round((ts - Date.now()) / 60000));
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return h ? h + 'h ' + m + 'm' : m + 'm';
+  }
+  function showGate(s) {
+    banner.className = 'banner ' + s.phase;
+    banner.textContent = '';
+    if (s.phase === 'open') {
+      banner.appendChild(el('strong', null, 'Games are open'));
+      banner.appendChild(document.createTextNode(' · ' + minutesLeft(s.openUntil) + ' left'));
+    } else if (s.phase === 'grace') {
+      banner.appendChild(el('strong', null, 'Games are closing'));
+      banner.appendChild(document.createTextNode(' · games in progress can finish'));
+    } else {
+      banner.appendChild(el('strong', null, 'Games are closed'));
+      banner.appendChild(document.createTextNode(' · the host opens them. '));
+      banner.appendChild(el('a', { 'class': 'text-link', href: '/admin' }, 'Host login'));
+    }
+    banner.hidden = false;
+  }
+  function loadGate() {
+    fetch('/status', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(showGate)
+      .catch(function () { banner.hidden = true; });
+  }
+  loadGate();
+  setInterval(loadGate, 60000);
+
   // TV remotes send arrow keys. Move focus to the nearest button in that direction.
   var DIRS = { 37: [-1, 0], 38: [0, -1], 39: [1, 0], 40: [0, 1] };
   var KEYS = { ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40 };

@@ -20,7 +20,7 @@ Slop Box runs on an Unraid server behind a Cloudflare Tunnel. The hub lives at `
 | [games.json](games.json) | The list of games the landing page shows |
 | [docker-compose.yml](docker-compose.yml) | Every container on the server: Caddy and each game |
 | [proxy/Caddyfile](proxy/Caddyfile) | Routes `<id>.<domain>` to each game's container |
-| [hub/](hub/) | The landing page (`ghcr.io/slop-box/hub`). It will also run the party gate and the deploy route. Run it locally with `node hub/server.js` and open `http://localhost:8080`. |
+| [hub/](hub/) | The landing page and the party gate (`ghcr.io/slop-box/hub`). Run it locally with `node hub/server.js` and open `http://localhost:8080`. Test it with `node hub/test.js`. |
 | [.env.example](.env.example) | The settings and secrets the server's `.env` needs |
 | [PLAN.md](PLAN.md) | The build-out plan, step by step |
 
@@ -34,6 +34,14 @@ phone / TV ──HTTPS──▶ Cloudflare Tunnel ──▶ Caddy ──▶ <id>
 - The **Cloudflare Tunnel** sends `<domain>` and `*.<domain>` to Caddy. Cloudflare handles HTTPS, and no router ports are open.
 - **Caddy** routes each subdomain to the game with the same id. Games publish no ports of their own.
 - **Watchtower** (the server's existing one) pulls new game images on its normal schedule.
+
+## Opening the games for a party
+
+The games are closed until the host opens them. Go to `https://<domain>/admin` and log in with `SLOPBOX_ADMIN_PASSWORD`. That opens every game for 4 hours. The admin page has **Extend 1 hour** and **Close now**.
+
+- **Guests** never log in. Scanning a game's QR code just works while games are open.
+- **When the 4 hours end**, devices that joined during them keep working for another hour, so a round in progress can finish. New devices see a "closed" page. That page lets them in on its own as soon as the host opens the games again.
+- **Close now** shuts everyone out right away, including devices still in that extra hour.
 
 ## Running it on the server
 

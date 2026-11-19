@@ -26,7 +26,7 @@ jobs:
     with:
       id: hub
       dockerfile: hub/Dockerfile
-      # Checks the hub's code parses and games.json is a valid list before publishing.
-      test-command: node --check hub/server.js && node --check hub/public/app.js && node -e "if (!Array.isArray(JSON.parse(require('fs').readFileSync('games.json','utf8')))) throw new Error('games.json must be an array')"
+      # Browser scripts parse, games.json is a valid list, and the end-to-end gate test passes.
+      test-command: node --check hub/public/app.js && node --check hub/public/status.js && node -e "if (!Array.isArray(JSON.parse(require('fs').readFileSync('games.json','utf8')))) throw new Error('games.json must be an array')" && node hub/test.js
       deploy: ${{ inputs.deploy == true }}
     secrets: inherit
