@@ -13,7 +13,7 @@ Ask the server owner for an invite to the `slop-box` organization. Members can c
 3. **Build it** so it follows the [game contract](GAME_CONTRACT.md). Run it locally with `npm start`, then open `http://<your-computer's-ip>:<port>/` on your phone, plus `/tv` on a second screen if the game uses a TV.
 4. **Push to `main`.** The workflow publishes `ghcr.io/slop-box/<id>`. After the first publish, open the package in the org's **Packages** tab and set **Package settings → Change visibility → Public**.
 5. **Open a pull request on this repo** that adds your game in three places:
-   - `games.json`: name, players, whether it needs a TV, and a one-line blurb
+   - `games.json`: name, players, whether it needs a TV, and a one-line blurb. Write `players` and `extraDevices` in lowercase (e.g. `"4+"`, `["tablet"]`), because they show as tags on the landing page, and all tags are lowercase.
    - `docker-compose.yml`: a service named `<id>` on the `slopbox` network, with no `ports:`, the Watchtower label, and a data volume if the game saves anything
    - `proxy/Caddyfile`: a block for `http://<id>.{$SLOPBOX_DOMAIN}` that proxies to `<id>:<port>`
 6. **After it's merged**, the server owner pulls the hub on the server, runs **Compose Up** and reloads Caddy. Your game is then live at `https://<id>.<domain>`.

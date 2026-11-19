@@ -22,7 +22,7 @@
 
     var chips = el('ul', { 'class': 'chips' });
     if (game.players) chips.appendChild(el('li', null, game.players + ' players'));
-    chips.appendChild(el('li', null, game.needsTv ? 'tv' : 'Phones only'));
+    chips.appendChild(el('li', null, game.needsTv ? 'tv' : 'phones only'));
     (game.extraDevices || []).forEach(function (d) { chips.appendChild(el('li', null, d)); });
     li.appendChild(chips);
 

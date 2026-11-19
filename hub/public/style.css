@@ -79,6 +79,7 @@ h1 span { color: var(--accent-2); margin-left: 0.15em; }
   background: rgba(255, 255, 255, 0.08);
   color: var(--muted);
   font-size: 0.8rem;
+  text-transform: lowercase; /* tags stay lowercase whatever games.json says */
 }
 
 .blurb { margin: 0 0 1rem; }
