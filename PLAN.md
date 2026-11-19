@@ -188,6 +188,8 @@ jobs:
 
 **Done when:** `https://<domain>` loads from a phone on mobile data, not only on the home Wi-Fi.
 
+> **Status (2026-11-19):** Done for QuickPic. Slop Box has its own tunnel, and its connector runs in the `slopboxhub` stack.
+
 ## Step 6: Bring QuickPic and DebateBros onto the hub
 
 Do this for each game:
@@ -207,6 +209,12 @@ Do this for each game:
    - Reconnecting after a phone locks its screen still works.
 
 **Done when:** a full game of each runs on the TV through the public URLs.
+
+> **Status (2026-11-19), QuickPic:**
+> - Items 1–2 are done: `/healthz` route, plus the Dockerfile `HEALTHCHECK` and Watchtower label.
+> - Items 3–4 were already in the hub.
+> - QuickPic needs no data volume, because it doesn't save anything.
+> - Left: remove the old standalone container, and play a full game on the public URL.
 
 ## Step 7: Build the landing page
 
