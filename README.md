@@ -46,6 +46,6 @@ phone / TV ──HTTPS──▶ Cloudflare Tunnel ──▶ Caddy ──▶ <id>
    rm "$P/docker-compose.yml"
    ```
    Then **Compose Up**. Don't edit the compose file from Compose Manager's editor, because it now edits the repo. Change it through a pull request, then `git pull` on the server.
-4. In the Cloudflare Zero Trust dashboard, point the tunnel's `<domain>` and `*.<domain>` hostnames at `http://<unraid-ip>:<SLOPBOX_HTTP_PORT>` (default 8480). Caddy's is the only port the stack publishes.
+4. In the Cloudflare Zero Trust dashboard, Slop Box's tunnel routes `<domain>` and `*.<domain>` to `http://caddy:80`. Its connector runs in this stack as `cloudflared`, using `CLOUDFLARE_TUNNEL_TOKEN` from `.env`.
 
 After a hub pull request is merged: `git pull` in the hub folder on the server, then **Compose Up**.

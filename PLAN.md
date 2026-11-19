@@ -170,8 +170,8 @@ jobs:
 
 ## Step 5: Set up the domain, DNS and proxy on Unraid
 
-1. [ ] The compose file creates the `slopbox` Docker network for Caddy and the games. Caddy is the only container with a published port (`SLOPBOX_HTTP_PORT`, default 8480). Pointing the tunnel at a host port works whatever network mode `cloudflared` uses, and nothing breaks when Unraid recreates the `cloudflared` container.
-2. [ ] Add public hostnames to the tunnel: `<domain>` and `*.<domain>`, both → `http://<unraid-ip>:8480`. The dashboard creates a DNS record for each hostname, but check that the `*` CNAME exists.
+1. [ ] Slop Box has **its own Cloudflare Tunnel**. Its connector runs in the hub stack as `cloudflared`, using `CLOUDFLARE_TUNNEL_TOKEN` from `.env`. It shares the `slopbox` network with Caddy and the games. Caddy also publishes `SLOPBOX_HTTP_PORT` (default 8480), but only for testing from the home network.
+2. [ ] Add public hostnames to the tunnel: `<domain>` and `*.<domain>`, both → `http://caddy:80`. The dashboard creates a DNS record for each hostname, but check that the `*` CNAME exists. Your other services' DNS records still take priority, because a specific record always beats the wildcard.
 3. [ ] Set up Caddy with one route per game, plus the hub at the bare domain. Cloudflare handles TLS, so Caddy serves plain HTTP:
    ```
    {

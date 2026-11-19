@@ -15,11 +15,24 @@ networks:
     name: slopbox   # fixed name so the existing Watchtower can join it (PLAN.md Step 11)
 
 services:
+  # Cloudflare Tunnel connector for Slop Box's own tunnel. The tunnel's routes (set in the
+  # Cloudflare dashboard) send <domain> and *.<domain> to http://caddy:80.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    networks: [slopbox]
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    # No Watchtower label: a restart drops every connection, so update it by hand
+    # (Compose Pull, then Compose Up) when nobody is playing.
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     networks: [slopbox]
-    # The only published port in the stack. Cloudflare Tunnel points at http://<unraid-ip>:<this port>.
+    # The only published port in the stack, for testing from the home network
+    # (curl -H "Host: <domain>" http://<unraid-ip>:8480). The tunnel reaches Caddy at caddy:80.
     # Everything goes through Caddy, so the party gate also applies on the home network.
     ports:
       - "${SLOPBOX_HTTP_PORT:-8480}:80"
