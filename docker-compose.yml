@@ -12,13 +12,17 @@ name: slopbox
 
 networks:
   slopbox:
-    name: slopbox   # fixed name so the existing cloudflared and Watchtower containers can join it
+    name: slopbox   # fixed name so the existing Watchtower can join it (PLAN.md Step 11)
 
 services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
     networks: [slopbox]
+    # The only published port in the stack. Cloudflare Tunnel points at http://<unraid-ip>:<this port>.
+    # Everything goes through Caddy, so the party gate also applies on the home network.
+    ports:
+      - "${SLOPBOX_HTTP_PORT:-8480}:80"
     environment:
       SLOPBOX_DOMAIN: ${SLOPBOX_DOMAIN}
     volumes:

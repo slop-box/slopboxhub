@@ -40,7 +40,6 @@ phone / TV ──HTTPS──▶ Cloudflare Tunnel ──▶ Caddy ──▶ <id>
 1. Clone this repo onto the server, e.g. `/mnt/user/appdata/slopbox/hub`.
 2. Copy `.env.example` to `.env` and fill it in.
 3. In **Compose Manager**, add a stack named `slopbox`, and under the advanced options set its folder to the cloned repo. The compose file uses paths relative to the repo (`./proxy/Caddyfile`), so a copied compose file won't find them. Then **Compose Up**.
-4. Connect the existing `cloudflared` container to the network: `docker network connect slopbox cloudflared`.
-5. In the Cloudflare Zero Trust dashboard, point the tunnel's `<domain>` and `*.<domain>` hostnames at `http://caddy:80`.
+4. In the Cloudflare Zero Trust dashboard, point the tunnel's `<domain>` and `*.<domain>` hostnames at `http://<unraid-ip>:<SLOPBOX_HTTP_PORT>` (default 8480). Caddy's is the only port the stack publishes.
 
 After a hub pull request is merged: `git pull` in the hub folder on the server, then **Compose Up**.
