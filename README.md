@@ -39,7 +39,13 @@ phone / TV ──HTTPS──▶ Cloudflare Tunnel ──▶ Caddy ──▶ <id>
 
 1. Clone this repo onto the server, e.g. `/mnt/user/appdata/slopbox/hub`.
 2. Copy `.env.example` to `.env` and fill it in.
-3. In **Compose Manager**, add a stack named `slopbox`, and under the advanced options set its folder to the cloned repo. The compose file uses paths relative to the repo (`./proxy/Caddyfile`), so a copied compose file won't find them. Then **Compose Up**.
+3. In **Compose Manager**, click **Add New Stack**, name it `slopbox`, and set **External folder** (called **Stack Directory** in some versions) to the cloned repo. The compose file uses paths relative to the repo (`./proxy/Caddyfile`), so a copied compose file won't find them. Afterwards, **Edit Stack → Compose File** should show the hub's file. If your version has neither option, point the stack at the repo from the terminal:
+   ```bash
+   P=/boot/config/plugins/compose.manager/projects/slopbox
+   printf '%s' /mnt/user/appdata/slopbox/hub > "$P/indirect"
+   rm "$P/docker-compose.yml"
+   ```
+   Then **Compose Up**. Don't edit the compose file from Compose Manager's editor, because it now edits the repo. Change it through a pull request, then `git pull` on the server.
 4. In the Cloudflare Zero Trust dashboard, point the tunnel's `<domain>` and `*.<domain>` hostnames at `http://<unraid-ip>:<SLOPBOX_HTTP_PORT>` (default 8480). Caddy's is the only port the stack publishes.
 
 After a hub pull request is merged: `git pull` in the hub folder on the server, then **Compose Up**.

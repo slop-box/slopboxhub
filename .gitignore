@@ -1,2 +1,4 @@
 .env
+# Compose Manager on Unraid may write this next to the compose file
+docker-compose.override.yml
 node_modules/
