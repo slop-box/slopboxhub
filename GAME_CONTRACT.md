@@ -11,14 +11,16 @@ Every Slop Box game follows these rules. They let the hub run, route, gate and u
    | Address | `https://<id>.<domain>` |
    | Image | `ghcr.io/slop-box/<id>` |
    | Service name in the hub's `docker-compose.yml` | `<id>` |
-   | Data folder on the server | `/mnt/user/appdata/slopbox/<id>` |
+   | Saved data on the server | Docker volume `<id>-data`, mounted at `/app/data` |
    | Entry in `games.json` | `"id": "<id>"` |
 
 ## Container
 
 2. **One container**, built from a `Dockerfile` in the game's repo and published by the shared workflow to `ghcr.io/slop-box/<id>`.
 3. **Listens on `$PORT`.** Pick any default. Caddy reaches the game by name on the `slopbox` Docker network, so no host port is ever published.
-4. **Runs as a non-root user.** Anything saved goes in `/app/data`, and nowhere else.
+4. **Runs as a non-root user.** Anything saved goes in `/app/data`, and nowhere else. A game that saves data also needs these two things:
+   - **The Dockerfile creates `/app/data` owned by that user**, e.g. `RUN mkdir -p /app/data && chown node:node /app/data` before `USER node`. On the server, the game's data volume starts as a copy of that folder, owner included. Without it, the volume belongs to root, and the game can't save.
+   - **No default files ship in `/app/data`.** Docker copies the folder into the volume only once, when the volume is created, so files a later image adds there never appear. Keep defaults elsewhere in the image, and create them in `/app/data` at startup if they're missing.
 5. **Has `sh` and Node 18 or newer in the image.** The update lock runs `node -e "fetch(...)"` inside the container. Every `node:` base image has both.
 6. **Has the Watchtower label** in the final Dockerfile stage:
    ```dockerfile

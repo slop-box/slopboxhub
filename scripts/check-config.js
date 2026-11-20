@@ -60,11 +60,16 @@ games.forEach((g, i) => {
 // ---------- docker-compose.yml ----------
 
 let services = {};
+let topVolumes = {}; // the top-level volumes: block
+let project = 'slopboxhub';
 try {
   // compose resolves variables and long-form syntax for us, so no YAML parser is needed.
   const out = execFileSync('docker', ['compose', '--env-file', '.env.example', 'config', '--format', 'json'],
     { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-  services = JSON.parse(out).services || {};
+  const config = JSON.parse(out);
+  services = config.services || {};
+  topVolumes = config.volumes || {};
+  project = config.name || project;
 } catch (e) {
   fail('docker-compose.yml', `\`docker compose config\` failed: ${(e.stderr || e.message).trim()}`);
 }
@@ -75,6 +80,13 @@ for (const [name, s] of Object.entries(services)) {
   }
   if (!INFRA.includes(name) && !ids.includes(name)) {
     fail('docker-compose.yml', `${name}: not in games.json. Every game service needs a games.json entry with the same id.`);
+  }
+  // A game's data volume belongs to that game alone.
+  for (const v of s.volumes || []) {
+    const owner = ids.find((id) => v.source === `${id}-data`);
+    if (v.type === 'volume' && owner && owner !== name) {
+      fail('docker-compose.yml', `${name}: mounts ${v.source}, which is ${owner}'s saved data. Each game's volume is mounted into that game only.`);
+    }
   }
 }
 
@@ -95,16 +107,45 @@ for (const id of ids) {
   }
   if (!s.mem_limit || !s.cpus) fail('docker-compose.yml', `${id}: set mem_limit and cpus, so one game can't slow the server`);
 
-  // Anything that gives a game more of the server than its own container and data folder.
+  // Anything that gives a game more of the server than its own container and data volume.
   if (s.privileged) fail('docker-compose.yml', `${id}: privileged isn't allowed`);
   if (s.network_mode) fail('docker-compose.yml', `${id}: network_mode isn't allowed`);
   for (const key of ['pid', 'ipc', 'userns_mode']) if (s[key] === 'host') fail('docker-compose.yml', `${id}: ${key}: host isn't allowed`);
   for (const key of ['cap_add', 'devices', 'security_opt']) if (s[key] && s[key].length) fail('docker-compose.yml', `${id}: ${key} isn't allowed`);
   if (s.user && /^(root|0)(:|$)/.test(String(s.user))) fail('docker-compose.yml', `${id}: games run as non-root`);
-  const dataDir = `/mnt/user/appdata/slopbox/${id}`;
+  if (s.volumes_from && s.volumes_from.length) fail('docker-compose.yml', `${id}: volumes_from isn't allowed`);
+
+  // Saved data goes in one Docker named volume, <id>-data, at /app/data. Docker fills a new volume from
+  // the image's /app/data, owner included, so a non-root game can write to it with no setup on the server.
+  const volume = `${id}-data`;
+  const expected = `use \`- ${volume}:/app/data\` under the service's volumes, and \`${volume}:\` under the top-level volumes`;
+  let usesVolume = false;
   for (const v of s.volumes || []) {
-    if (v.type === 'bind' && v.source !== dataDir && !v.source.startsWith(dataDir + '/')) {
-      fail('docker-compose.yml', `${id}: bind mounts must come from ${dataDir} (got ${v.source})`);
+    if (v.type === 'tmpfs') continue; // scratch space in memory, gone on restart
+    if (v.type === 'bind') {
+      fail('docker-compose.yml', `${id}: no bind mounts (got ${v.source}). Games save data in the named volume ${volume}: ${expected}.`);
+    } else if (v.type !== 'volume') {
+      fail('docker-compose.yml', `${id}: ${v.type} mounts aren't allowed. ${expected[0].toUpperCase()}${expected.slice(1)}.`);
+    } else if (!v.source) {
+      fail('docker-compose.yml', `${id}: anonymous volume at ${v.target}. Saved data needs the named volume ${volume}: ${expected}.`);
+    } else if (v.source !== volume || v.target !== '/app/data') {
+      fail('docker-compose.yml', `${id}: the only volume a game may mount is ${volume} at /app/data (got ${v.source} at ${v.target}): ${expected}.`);
+    } else {
+      usesVolume = true;
+    }
+  }
+  if (usesVolume) {
+    const top = topVolumes[volume];
+    if (!top) {
+      fail('docker-compose.yml', `${id}: add \`${volume}:\` under the top-level volumes, next to hub-data.`);
+    } else {
+      // driver_opts can turn a "volume" into a bind mount of any host folder (type: none, o: bind, device: /path).
+      for (const key of ['driver', 'driver_opts', 'external']) {
+        if (top[key] != null) fail('docker-compose.yml', `${id}: the top-level ${volume} entry must be bare (no ${key}).`);
+      }
+      if (top.name && top.name !== `${project}_${volume}`) {
+        fail('docker-compose.yml', `${id}: the top-level ${volume} entry must be bare (no name).`);
+      }
     }
   }
 }

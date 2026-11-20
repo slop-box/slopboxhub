@@ -94,6 +94,28 @@ To turn it on:
 
 **If the hub itself is broken**, the lock can't work, and neither can manual deploys. Update the hub from Compose Manager instead: **Compose Pull**, then **Compose Up**. Watchtower may also replace it on its own: unlike a game's hook, the hub's hook allows the update when the hub doesn't answer.
 
+## Game data
+
+A game that saves anything gets a Docker named volume, `<id>-data`, mounted at `/app/data`. On the server it's called `slopboxhub_<id>-data`. The hub's own state (games open or closed, update history) is in `slopboxhub_hub-data`.
+- **No setup needed.** When Docker creates the volume, it copies the image's `/app/data` into it, owner included, so the non-root game can write straight away. The **Hub checks** keep games to their own volume, with no bind mounts.
+- **What keeps the data:** restarts, Watchtower updates, and **Compose Down**/**Compose Up**.
+- **What erases it:** `docker compose down -v`, or deleting Unraid's Docker image or directory.
+- **Not backed up.** Volumes live inside Docker's own storage, not in `appdata`, so appdata backups miss them.
+
+Run these on the server, from the hub folder (`/mnt/user/appdata/slopbox/hub`). Replace `<id>` with the game's id.
+
+| Task | Command |
+|---|---|
+| List the volumes | `docker volume ls \| grep slopboxhub_` |
+| Back up a game's data | `docker run --rm -v slopboxhub_<id>-data:/d -v /mnt/user/appdata/slopbox/backups:/b alpine tar czf /b/<id>.tgz -C /d .` |
+| Restore a backup (game stopped) | `docker compose stop <id> && docker run --rm -v slopboxhub_<id>-data:/d -v /mnt/user/appdata/slopbox/backups:/b alpine tar xzf /b/<id>.tgz -C /d && docker compose start <id>` |
+| Wipe a game's data | `docker compose rm -sf <id> && docker volume rm slopboxhub_<id>-data && docker compose up -d <id>` |
+| Fix the owner, after a game changes the user it runs as | `docker run --rm -v slopboxhub_<id>-data:/d alpine chown -R <uid>:<gid> /d` |
+
+- **Wiping** has to remove the container first, because Docker won't delete a volume that any container uses, even a stopped one. Bringing the game back up creates a fresh volume from the image.
+- **Fixing the owner** is needed because Docker copies the owner only when it creates a volume. The `node` user in `node:` images is `1000:1000`.
+- **Removing a game** from the compose file leaves its volume behind. Delete it with `docker volume rm slopboxhub_<id>-data` once you're sure.
+
 ## Running it on the server
 
 1. Clone this repo onto the server, e.g. `/mnt/user/appdata/slopbox/hub`.

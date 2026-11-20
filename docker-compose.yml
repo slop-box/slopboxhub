@@ -5,6 +5,9 @@
 #   - service name = game id = subdomain = image name. Caddy reaches the game at <id>:<port>.
 #   - on the slopbox network, and NO `ports:`. Caddy must be the only way in, or the party
 #     gate can be skipped from the home network.
+#   - saved data (if any) in a Docker named volume <id>-data, mounted at /app/data and listed under
+#     the top-level volumes: below. No bind mounts. Docker fills a new volume from the image's
+#     /app/data, owner included, so the non-root game can write to it with no setup on the server.
 #   - Watchtower enable label, plus the update-lock hook label with the game's id (PLAN.md Step 11).
 #     Before updating the game, Watchtower runs the hook inside it. The hook asks the hub, and exits
 #     75 ("skip this time") while games are open or the hub doesn't answer.

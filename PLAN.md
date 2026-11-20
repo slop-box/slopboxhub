@@ -34,7 +34,7 @@ Both games use root paths everywhere (`/style.css`, `/ws`, `/action`, `/qr`, `/a
 - **GitHub org `slop-box`**: one repo per game, owned by whoever made the game, plus the hub repo `slop-box/slopboxhub`.
 - **Hub repo**: compose file, Caddy config, landing page and gate, `games.json`, the game contract, and the shared CI workflow.
 - **Game contract**: the short list of rules a game must follow to plug in.
-- **One name per game.** A game's **id** (lowercase letters, digits and hyphens, e.g. `quickpic`) is also its subdomain, image name, compose service name and data folder. Nothing needs a mapping table.
+- **One name per game.** A game's **id** (lowercase letters, digits and hyphens, e.g. `quickpic`) is also its subdomain, image name, compose service name and data volume (`<id>-data`). Nothing needs a mapping table.
 
 ---
 
@@ -110,7 +110,7 @@ Example `games.json` entry. The `id` is also the subdomain, so there's no separa
 
 `GAME_CONTRACT.md` sets the rules every game follows. Each rule below is already true of QuickPic or DebateBros, or both:
 
-1. **One id.** Lowercase letters, digits and hyphens. It's the game's subdomain (`<id>.<domain>`), image (`ghcr.io/slop-box/<id>`), compose service name and data folder.
+1. **One id.** Lowercase letters, digits and hyphens. It's the game's subdomain (`<id>.<domain>`), image (`ghcr.io/slop-box/<id>`), compose service name and data volume (`<id>-data`).
 2. **One container**, built from a Dockerfile in the game's repo.
 3. **Listens on `$PORT`.** The default port doesn't matter, because Caddy reaches containers by name on a shared Docker network, not through host ports.
 4. **Routes:** players start at `/`. A TV is optional. Games that use one put its page at `/tv` and set `"needsTv": true` in `games.json`. Other device pages are allowed (QuickPic has `/draw`).
@@ -200,7 +200,7 @@ Do this for each game:
    - service name = game id, on the `slopbox` network
    - no host `ports:` (Caddy reaches it by name)
    - the Watchtower enable label and the update-lock hook label (Step 11)
-   - `/app/data` mounted from `/mnt/user/appdata/slopbox/<id>`, with `PUID=99`/`PGID=100` where the game supports it
+   - if the game saves data, a Docker named volume `<id>-data` mounted at `/app/data` (and listed under the top-level `volumes:`)
 4. [ ] Add the game to `games.json` and to the Caddyfile.
 5. [ ] Stop and remove the old standalone container that runs on port 3000/3001.
 6. [ ] **Test a real game over HTTPS:** TV browser on `https://<id>.<domain>/tv` and phones joining by QR code. Confirm all of the following:
