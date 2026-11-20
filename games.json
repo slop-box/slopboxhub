@@ -7,5 +7,14 @@
     "extraDevices": ["tablet"],
     "blurb": "Draw blind on a tablet while your team shouts guesses at the TV.",
     "repo": "https://github.com/slop-box/QuickPic"
+  },
+  {
+    "id": "debatebros",
+    "name": "Debate Bros",
+    "players": "3–12",
+    "needsTv": true,
+    "extraDevices": [],
+    "blurb": "Argue nonsense from your phone while the crowd pelts you with tomatoes.",
+    "repo": "https://github.com/slop-box/debatebros"
   }
 ]

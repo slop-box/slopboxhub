@@ -27,6 +27,11 @@ http://quickpic.{$SLOPBOX_DOMAIN} {
 	reverse_proxy quickpic:3000
 }
 
+http://debatebros.{$SLOPBOX_DOMAIN} {
+	import gate
+	reverse_proxy debatebros:3001
+}
+
 # Anything else under the domain (typos, removed games) goes to the hub.
 http:// {
 	redir https://{$SLOPBOX_DOMAIN} 302

@@ -20,6 +20,7 @@ networks:
 
 volumes:
   hub-data:         # party gate state (open/closed), so a hub restart doesn't close the games
+  debatebros-data:
 
 services:
   # Cloudflare Tunnel connector for Slop Box's own tunnel. The tunnel's routes (set in the
@@ -94,4 +95,15 @@ services:
     mem_limit: 512m
     cpus: 1.0
 
-  # DebateBros joins once it moves to the slop-box org (PLAN.md Step 1).
+  debatebros:
+    image: ghcr.io/slop-box/debatebros:latest
+    restart: unless-stopped
+    networks: [slopbox]
+    volumes:
+      - debatebros-data:/app/data
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.lifecycle.pre-update: >-
+        node -e "fetch('http://hub:8080/update-allowed?id=debatebros').then(r=>process.exit(r.ok?0:75),()=>process.exit(75))"
+    mem_limit: 512m
+    cpus: 1.0
