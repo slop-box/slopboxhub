@@ -104,6 +104,7 @@ To start fresh instead, create an empty repo in the org and push to it.
 | Admin or debug features | Off unless an environment variable turns them on, because the game is on the internet. |
 | Runs on its own | `npm start` works with no hub, Docker or server. |
 | TV browsers | If the game has a TV page, keep its code plain. Older TV browsers (LG webOS 6 is about Chrome 79) lack newer JavaScript and CSS. |
+| TV remote | Recommended for a TV page: copy [`public/tv-remote.js`](https://github.com/slop-box/game-template/blob/main/public/tv-remote.js) from the template as-is and load it before your TV script. The first OK press then goes full screen, and Back asks "Press Back again to leave" instead of dropping out of the game. If your TV page has menus or zoomed views, close them on Back first with `TvRemote.init({ onBack })`. The file's header explains how. |
 
 **Add a Dockerfile.** It must run as a non-root user and include `sh` and **Node 18 or newer**, even if the game isn't written in JavaScript. The server's update lock runs `node` inside your container before every update. Without it, your game never updates. Any `node:` base image works. On Alpine, `apk add --no-cache nodejs` adds Node.
 
