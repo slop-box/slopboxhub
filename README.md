@@ -20,7 +20,7 @@ Slop Box runs on an Unraid server behind a Cloudflare Tunnel. The hub lives at `
 | [games.json](games.json) | The list of games the landing page shows |
 | [docker-compose.yml](docker-compose.yml) | Every container on the server: Caddy and each game |
 | [proxy/Caddyfile](proxy/Caddyfile) | Routes `<id>.<domain>` to each game's container |
-| [hub/](hub/) | The landing page, the party gate, the update lock and manual deploys (`ghcr.io/slop-box/hub`). Run it locally with `node hub/server.js` and open `http://localhost:8080`. Test it with `node hub/test.js`. |
+| [hub/](hub/) | The landing page, the party gate and the update lock (`ghcr.io/slop-box/hub`). Run it locally with `node hub/server.js` and open `http://localhost:8080`. Test it with `node hub/test.js`. |
 | [scripts/check-config.js](scripts/check-config.js) | Checks that `games.json`, the compose file and the Caddyfile agree and follow the game contract. It runs on every pull request ([check.yml](.github/workflows/check.yml)). Run it locally with `node scripts/check-config.js` (needs Docker). |
 | [.env.example](.env.example) | The settings and secrets the server's `.env` needs |
 | [PLAN.md](PLAN.md) | The build-out plan, step by step |
@@ -46,32 +46,53 @@ The games are closed until the host opens them. Go to `https://<domain>/admin` a
 
 ## Updates
 
-Pushing to a game's `main` publishes its image, and Watchtower picks it up on its normal schedule. Two things sit on top of that:
+Pushing to a game's `main` publishes its image, and Watchtower picks it up on its normal schedule. The **update lock** sits on top of that: while games are open, and for the hour after, Watchtower skips Slop Box containers, so nothing restarts mid-party. It catches up on a later run.
 
-- **Update lock.** While games are open, and for the hour after, Watchtower skips Slop Box containers, so nothing restarts mid-party. It catches up on a later run. Each container in the compose file has a pre-update hook label that asks the hub `/update-allowed?id=<id>`. The hook exits `75` ("skip this time") unless the hub says yes. If the hub doesn't answer, games are skipped too.
-- **Manual deploys.** A dev can restart their own game right away with **Actions → Publish → Run workflow → Deploy now**, even while games are open. The workflow calls `https://<domain>/deploy` with `SLOPBOX_DEPLOY_TOKEN`. The hub asks Watchtower to update only that image, waits for it, and the run fails if the deploy fails.
+Each container in the compose file has a pre-update hook label that asks the hub `/update-allowed?id=<id>`. The hook exits `75` ("skip this time") unless the hub says yes. If the hub doesn't answer, games are skipped too.
 
-The admin page's **Updates** panel shows each game's last update (scheduled or manual), the scheduled updates skipped while games were open, and the latest manual deploy. For a big party, **Block manual deploys** makes every **Deploy now** fail until you allow them again.
+The admin page's **Updates** panel shows each game's last update and the scheduled updates skipped while games were open.
 
-**Setting it up** (once):
+**Setting up the lock** (once): add `WATCHTOWER_LIFECYCLE_HOOKS=true` to your existing Watchtower's settings. Its schedule stays as it is, and containers without a hook label update as before.
+
+### Manual deploys (not turned on)
+
+The hub can also let a dev restart their own game right away with **Actions → Publish → Run workflow → Deploy now**, even while games are open. It's built but switched off: with no tokens in `.env`, the hub refuses deploys, and **Deploy now** just publishes the image and prints a warning.
+
+How it works once it's on:
+- The workflow calls `https://<domain>/deploy` with `SLOPBOX_DEPLOY_TOKEN`.
+- The hub asks Watchtower to update only that image and waits for it. The run fails if the deploy fails.
+- The admin page shows the latest deploy for each game. For a big party, its **Block manual deploys** switch makes every **Deploy now** fail until you allow them again.
+
+To turn it on:
 
 1. Generate `SLOPBOX_DEPLOY_TOKEN` and `WATCHTOWER_API_TOKEN` (`openssl rand -hex 32` each) and put them in `.env`.
-2. In GitHub, add two **org** Actions secrets: `SLOPBOX_DEPLOY_TOKEN` (same value) and `SLOPBOX_DEPLOY_URL` (`https://<domain>/deploy`).
-3. Add these to your existing Watchtower's settings. Its schedule stays as it is.
+2. In GitHub, add two **org** Actions secrets: `SLOPBOX_DEPLOY_TOKEN` (same value) and `SLOPBOX_DEPLOY_URL` (`https://<domain>/deploy`). On the free plan, a private game repo may need them as repo secrets instead.
+3. Add these to Watchtower's settings, next to `WATCHTOWER_LIFECYCLE_HOOKS`:
 
    | Variable | Value | Why |
    |---|---|---|
-   | `WATCHTOWER_LIFECYCLE_HOOKS` | `true` | Turns on the lock. Containers without a hook label update as before. |
    | `WATCHTOWER_HTTP_API_UPDATE` | `true` | Lets the hub trigger manual deploys. |
    | `WATCHTOWER_HTTP_API_TOKEN` | the `WATCHTOWER_API_TOKEN` value | Only the hub can call Watchtower. |
    | `WATCHTOWER_HTTP_API_PERIODIC_POLLS` | `true` | **Required.** Without it, turning on the HTTP API stops the normal schedule. |
 
 4. Connect Watchtower to the stack's network: `docker network connect slopbox watchtower`. Don't publish its port 8080. Unraid drops this network when it re-creates the container (after a template edit or a Watchtower update), so run the command again then. If the container has another name, set `WATCHTOWER_URL=http://<name>:8080` in `.env`.
 5. **Compose Up**, so the hub gets the new settings.
+6. Update the "not turned on" notes in [CONTRIBUTING.md](CONTRIBUTING.md) and [GAME_CONTRACT.md](GAME_CONTRACT.md), and in the game template's README.
+
+### Rollback and repairs
+
+**Forcing an update while games are open:** the lock only stops Watchtower, so the server owner can still update a game by hand. Restarting a game ends any round in progress, so check nobody's playing it first.
+
+- **One game:** run this on the server, from the hub folder. It pulls the new image and re-creates only that game.
+  ```bash
+  cd /mnt/user/appdata/slopbox/hub
+  docker compose pull quickpic && docker compose up -d quickpic
+  ```
+- **Everything that's waiting:** press **Close now** on the admin page. The lock opens straight away, with no grace hour, and Watchtower's next run updates every game with a new image. Then open the games again. This shuts out every player, so it's a last resort.
 
 **Rolling back a game:** in the server's copy of `docker-compose.yml`, change the game's image to a known-good build, e.g. `ghcr.io/slop-box/quickpic:sha-<commit>` (each build is also published as `:sha-<full commit>`), then **Compose Up**. Watchtower leaves a pinned build alone, because nothing new is ever published under that tag. Once the game is fixed, `git checkout docker-compose.yml` and **Compose Up** again.
 
-**If the hub itself is broken**, manual deploys and the lock can't work. Update the hub from Compose Manager instead: **Compose Pull**, then **Compose Up**. Watchtower may also replace it on its own: unlike a game's hook, the hub's hook allows the update when the hub doesn't answer.
+**If the hub itself is broken**, the lock can't work, and neither can manual deploys. Update the hub from Compose Manager instead: **Compose Pull**, then **Compose Up**. Watchtower may also replace it on its own: unlike a game's hook, the hub's hook allows the update when the hub doesn't answer.
 
 ## Running it on the server
 

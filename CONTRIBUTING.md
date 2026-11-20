@@ -23,10 +23,11 @@ Ask the server owner for an invite to the `slop-box` organization. Members can c
 ## Updating your game
 
 - **Normal updates:** push to `main`. The server picks up the new image on Watchtower's next scheduled run. While games are open at a party, updates wait until the party is over.
-- **Testing on the server right away:** in your repo, go to **Actions → Publish → Run workflow** and tick **Deploy now**. Only your game restarts, even if games are open. The **deploy** job waits until the server has your new image, usually within a couple of minutes, and fails if the update failed. "Nothing to update" means the server already had that image.
+- **Testing on the server:** just push. Watchtower checks every couple of minutes, so your game is usually live a few minutes after the publish finishes. The exception is a party: while games are open it waits until they close. The workflow's **Deploy now** box isn't turned on, so it only publishes the image and prints a warning. If deploys are turned on later:
+  - Only your game restarts, even if games are open. The **deploy** job waits until the server has your new image, usually within a couple of minutes, and fails if the update failed. "Nothing to update" means the server already had that image.
   - A deploy during a party ends any round of your game in progress, so check nobody's playing it first.
   - At a big party the host may block manual deploys. The run then fails with "The host has blocked manual deploys". Your image is still published, and the server picks it up after the party.
-  - Running the workflow from a branch other than `main` publishes that branch as `:latest`. The next push to `main` replaces it.
+- **Running the workflow from a branch other than `main`** publishes that branch as `:latest`, and the server picks it up like any other update. The next push to `main` replaces it.
 - **Changing how the game runs on the server** (a new environment variable, a data folder, a different port): open a pull request on this repo.
 
 ## Changing the hub

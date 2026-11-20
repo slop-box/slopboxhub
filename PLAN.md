@@ -47,7 +47,7 @@ Both games use root paths everywhere (`/style.css`, `/ws`, `/action`, `/qr`, `/a
 - [x] **Image visibility.** Public. Unraid and Watchtower pull with no login. Game repos can still be private.
 - [x] **Org name.** `slop-box`.
 - [x] **How Unraid runs the stack.** The **Compose Manager** plugin, with the hub's `docker-compose.yml` as the source of truth.
-- [x] **Updates.** Your existing Watchtower, on its current schedule. It skips Slop Box games while they're open (the gate's window plus its grace hour) and catches up on a later run. Any dev can trigger a manual deploy for testing, and it runs even while games are open (Step 11).
+- [x] **Updates.** Your existing Watchtower, on its current schedule. It skips Slop Box games while they're open (the gate's window plus its grace hour) and catches up on a later run. Manual deploys for testing are built but **off for now** (decided 2026-11-20), so no deploy tokens are needed. The server owner updates a game right away from the server instead (Step 11).
 - [x] **Hub merge rights.** The hub repo is **public**. Friends have Write access and open pull requests, and only you approve merges into `main` (branch protection + `CODEOWNERS`). Game repos are different: each friend pushes to their own with no approval.
 
 ## Step 1: Create the GitHub org and move the existing games
@@ -337,7 +337,7 @@ Wait for a third game before pulling shared code (QR, rooms, reconnect) into an 
 Slop Box uses **your existing Watchtower** with its **current schedule**. No second Watchtower is added. The hub adds two things on top:
 
 - **Update lock:** while games are open (the gate's window plus its grace hour), Watchtower skips Slop Box containers.
-- **Manual deploy:** any dev can update their own game right away, even while games are open.
+- **Manual deploy:** any dev can update their own game right away, even while games are open. **Off for now** (decided 2026-11-20): it's built, but stays off until the two tokens are set, so nobody needs deploy secrets yet. Until then, the server owner updates a game right away with `docker compose pull <id> && docker compose up -d <id>` in the hub folder.
 
 **How the lock works:**
 
@@ -367,13 +367,16 @@ Every answer is recorded, so the admin page shows each game's last update (sched
 **Changes to your existing Watchtower** (its schedule stays as it is):
 
 - [ ] `WATCHTOWER_LIFECYCLE_HOOKS=true`. This turns on the lock. It only affects containers that have a lifecycle label, so your other containers update as before.
+
+Only when turning manual deploys on:
+
 - [ ] `WATCHTOWER_HTTP_API_UPDATE=true` and `WATCHTOWER_HTTP_API_TOKEN=<WATCHTOWER_API_TOKEN>`. This lets the hub trigger manual deploys.
 - [ ] `WATCHTOWER_HTTP_API_PERIODIC_POLLS=true`. **Required:** without it, turning on the HTTP API stops Watchtower's normal schedule.
 - [ ] Connect the Watchtower container to the `slopbox` network so the hub can reach it at `watchtower:8080`: `docker network connect slopbox watchtower`. Don't publish port 8080.
   - Unraid drops this extra network when it re-creates the container (after a template edit or a Watchtower update), so run the command again after either one. A broken connection shows on the admin page as "Couldn't reach Watchtower".
   - If the container isn't named `watchtower`, set `WATCHTOWER_URL=http://<its name>:8080` in `.env`.
 
-**Manual deploy, for any dev, for testing:**
+**Manual deploy, for any dev, for testing (off for now):**
 
 1. A dev opens their game's repo and goes to **Actions → Publish → Run workflow**, with **Deploy now** ticked. The workflow builds, tests and publishes the game.
 2. The workflow calls the hub:
@@ -420,10 +423,11 @@ There are two tokens, so devs can never call Watchtower directly. The deploy URL
 
 - [ ] A game pushed during the day updates at Watchtower's next scheduled run.
 - [ ] With games open during a scheduled run, no Slop Box container restarts, your other containers still update, and the skipped game updates on a later run after games close.
-- [ ] **Run workflow → Deploy now** restarts only that game within a couple of minutes, whether or not games are open.
-- [ ] A deploy call without the token is rejected.
+- Once manual deploys are on:
+  - [ ] **Run workflow → Deploy now** restarts only that game within a couple of minutes, whether or not games are open.
+  - [ ] A deploy call without the token is rejected.
 
-> **Status (2026-11-20):** The hub side is built. What's left is on the server and in GitHub.
+> **Status (2026-11-20):** The hub side is built. Manual deploys stay off for now, so the only server change is one Watchtower setting.
 > - **`hub/updates.js`** decides each hook call, tracks manual deploys and keeps the history in `/app/data/updates.json`. `hub/server.js` serves `/update-allowed` and `/deploy`, and the admin page has an **Updates** panel with the **Block manual deploys** switch.
 > - **Compose:** QuickPic and the hub have the hook label. The hub gets `SLOPBOX_DEPLOY_TOKEN`, `WATCHTOWER_API_TOKEN` and `WATCHTOWER_URL`.
 > - **Hub checks:** `scripts/check-config.js` fails any game whose hook label is missing or names the wrong id.
@@ -431,10 +435,10 @@ There are two tokens, so devs can never call Watchtower directly. The deploy URL
 > - **`publish-game.yml`** waits for the deploy result, and fails the run when the deploy fails.
 > - **Tested:** `node hub/test.js` passes 30 checks, 11 of them for updates against a fake Watchtower. The hook labels were run with `sh -c` in `node:22-alpine` against a real hub. They exit `0` when games are closed and `75` when they're open. When the hub is down, a game's hook exits `75` and the hub's exits `0`. The workflow's deploy script was run against a hub and a fake Watchtower for each kind of result.
 > - **Left:**
->   - Generate the two tokens and add them to `.env`, then add the org secrets `SLOPBOX_DEPLOY_TOKEN` and `SLOPBOX_DEPLOY_URL`.
->   - Change Watchtower's settings and connect it to `slopbox` (the list above).
 >   - After the hub's Publish run finishes: `git pull`, then **Compose Pull** and **Compose Up**. Pull the image first. If the hook labels go live on the old hub image, every hook gets a `404` and exits `75`, so nothing updates, not even the hub.
->   - The three Watchtower checks, then the "Done when" list.
+>   - Add `WATCHTOWER_LIFECYCLE_HOOKS=true` to Watchtower.
+>   - Check that exit code `75` skips the update without stopping the container, then the first two "Done when" items.
+>   - **Later, to turn manual deploys on:** follow "Manual deploys" in the README (tokens, org secrets, three more Watchtower settings, the network). Then do the two remaining Watchtower checks and the deploy items under "Done when".
 
 ## Later (not needed yet)
 

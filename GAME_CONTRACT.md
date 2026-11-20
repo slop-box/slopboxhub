@@ -40,4 +40,4 @@ Every Slop Box game follows these rules. They let the hub run, route, gate and u
 ## Development
 
 13. **Runs on its own with `npm start`.** Nobody should need the hub, Docker or the server to work on a game.
-14. **Pushing to `main` publishes the image.** The server picks it up on Watchtower's next scheduled run, unless games are open. To test on the server right away, use **Actions → Publish → Run workflow** with **Deploy now** ticked.
+14. **Pushing to `main` publishes the image.** The server picks it up on Watchtower's next scheduled run, unless games are open. (**Deploy now**, for testing on the server right away, isn't turned on yet.)

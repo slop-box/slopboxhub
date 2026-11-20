@@ -287,7 +287,7 @@ function updatesPanel(btn) {
   return `  <section class="panel">
     <h2>Updates</h2>
     <p>While games are open, and for the grace period after, Watchtower skips its scheduled updates of Slop Box games. It catches up on a later run.</p>
-    ${off ? '<p class="error">Manual deploys are off: set SLOPBOX_DEPLOY_TOKEN and WATCHTOWER_API_TOKEN in the server’s .env.</p>'
+    ${off ? '<p class="muted">Manual deploys are off. To turn them on, see “Manual deploys” in the hub’s README.</p>'
       : updates.blocked ? '<p class="status status-grace">Manual deploys are blocked</p><p>Devs’ <strong>Deploy now</strong> runs fail until you allow them again.</p>'
       : '<p>Devs can still restart their own game with <strong>Deploy now</strong>, even during a party.</p>'}
     <ul class="updates">${rows.join('')}</ul>
