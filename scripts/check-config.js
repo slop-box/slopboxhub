@@ -13,6 +13,11 @@ const ID_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const INFRA = ['caddy', 'cloudflared', 'hub'];
 const RESERVED = new Set([...INFRA, 'www']);
 
+// The update-lock hook (PLAN.md Step 11). Watchtower runs it inside the game before updating it.
+const HOOK_LABEL = 'com.centurylinklabs.watchtower.lifecycle.pre-update';
+const hookFor = (id) =>
+  `node -e "fetch('http://hub:8080/update-allowed?id=${id}').then(r=>process.exit(r.ok?0:75),()=>process.exit(75))"`;
+
 const errors = [];
 const warnings = [];
 const inActions = !!process.env.GITHUB_ACTIONS;
@@ -82,6 +87,11 @@ for (const id of ids) {
   if (nets.length !== 1 || nets[0] !== 'slopbox') fail('docker-compose.yml', `${id}: must be on the slopbox network only (got ${nets.join(', ') || 'none'})`);
   if ((s.labels || {})['com.centurylinklabs.watchtower.enable'] !== 'true') {
     fail('docker-compose.yml', `${id}: needs the label com.centurylinklabs.watchtower.enable: "true"`);
+  }
+  if ((s.labels || {})[HOOK_LABEL] !== hookFor(id)) {
+    fail('docker-compose.yml', `${id}: needs the update-lock label (copy it from the template's README), ` +
+      `so Watchtower doesn't restart the game mid-party. Under labels, add \`${HOOK_LABEL}: >-\` ` +
+      `and on the next line, indented: ${hookFor(id)}`);
   }
   if (!s.mem_limit || !s.cpus) fail('docker-compose.yml', `${id}: set mem_limit and cpus, so one game can't slow the server`);
 

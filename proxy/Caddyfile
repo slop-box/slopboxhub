@@ -14,8 +14,10 @@
 	}
 }
 
-# Hub: landing page (and later the party gate and the deploy route).
+# Hub: landing page, party gate, and /deploy for devs' "Deploy now" runs (PLAN.md Step 11).
 http://{$SLOPBOX_DOMAIN} {
+	# Watchtower's update-lock hook asks the hub over the Docker network, never through here.
+	respond /update-allowed* 404
 	reverse_proxy hub:8080
 }
 

@@ -13,7 +13,8 @@
 # Org secrets used by the deploy step (set once in the org's Actions secrets):
 #   SLOPBOX_DEPLOY_URL    https://<domain>/deploy
 #   SLOPBOX_DEPLOY_TOKEN  same value as in the server's .env
-# Until both exist (PLAN.md Step 11), a deploy request just prints a warning.
+# Until both exist, a deploy request just prints a warning. The deploy fails the run if the hub
+# refuses it or Watchtower fails (PLAN.md Step 11).
 
 name: Publish Slop Box game
 
@@ -127,5 +128,41 @@ jobs:
             echo "::warning::Deploy isn't set up yet (org secrets SLOPBOX_DEPLOY_URL and SLOPBOX_DEPLOY_TOKEN). The image is published; the server picks it up on Watchtower's next run."
             exit 0
           fi
-          curl -fsS --max-time 300 -H "Authorization: Bearer $DEPLOY_TOKEN" "$DEPLOY_URL?id=$ID"
-          echo "Deployed $ID."
+
+          # The hub answers JSON { state, message, started }. POST starts the deploy and waits up to a
+          # minute (Cloudflare cuts requests off at 100 s). "running" means Watchtower is still at it,
+          # so check back with GET. If the hub doesn't answer at all (it restarts when it deploys
+          # itself), try again too.
+          call() {
+            rm -f resp.json
+            curl -sS -o resp.json -w '%{http_code}' --max-time 90 \
+              -H "Authorization: Bearer $DEPLOY_TOKEN" "$@" "$DEPLOY_URL?id=$ID" || true
+          }
+          # A deploy that started before this run belongs to someone else: the hub never got ours.
+          since=$(( ($(date +%s) - 60) * 1000 ))
+          deadline=$(( SECONDS + 600 ))
+          code=$(call -X POST)
+          while :; do
+            state=$(jq -r --argjson since "$since" \
+              'if (.started // $since) < $since then "stale" else (.state // "") end' resp.json 2>/dev/null || true)
+            message=$(jq -r '.message // ""' resp.json 2>/dev/null || true)
+            case "$state:$code" in
+              running:*) echo "$message" ;;
+              :000|:502|:503|:504|:52?) echo "The hub didn't answer (HTTP $code). Trying again." ;;
+              *) break ;;
+            esac
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::Gave up after 10 minutes. Check the hub's admin page for how the deploy ended."
+              exit 1
+            fi
+            sleep 10
+            code=$(call)
+          done
+
+          case "$state" in
+            updated) echo "$message" ;;
+            current) echo "::notice::$message" ;;
+            stale) echo "::error::The hub never got this deploy (it reports an older one). Run the workflow again."; exit 1 ;;
+            "") echo "::error::Deploy failed: the hub answered HTTP $code, not a deploy result. Is $DEPLOY_URL right?"; exit 1 ;;
+            *) echo "::error::Deploy failed (HTTP $code): $message"; exit 1 ;;
+          esac

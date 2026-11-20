@@ -5,8 +5,9 @@
 #   - service name = game id = subdomain = image name. Caddy reaches the game at <id>:<port>.
 #   - on the slopbox network, and NO `ports:`. Caddy must be the only way in, or the party
 #     gate can be skipped from the home network.
-#   - Watchtower enable label. The update-lock hook label is added in PLAN.md Step 11, once the
-#     hub serves /update-allowed (adding it earlier would block every update).
+#   - Watchtower enable label, plus the update-lock hook label with the game's id (PLAN.md Step 11).
+#     Before updating the game, Watchtower runs the hook inside it. The hook asks the hub, and exits
+#     75 ("skip this time") while games are open or the hub doesn't answer.
 
 name: slopboxhub   # matches the Compose Manager stack name, so containers are slopboxhub-<service>-1
 
@@ -48,7 +49,7 @@ services:
       - /mnt/user/appdata/slopbox/caddy:/data
     # No Watchtower label: update Caddy by hand (Compose Pull, then Compose Up) when nothing is running.
 
-  # Landing page at <domain>. Later also the party gate and the deploy route (PLAN.md Steps 8 and 11).
+  # Landing page at <domain>, the party gate, the update lock and manual deploys (PLAN.md Steps 8 and 11).
   hub:
     image: ghcr.io/slop-box/hub:latest
     restart: unless-stopped
@@ -61,12 +62,19 @@ services:
       SLOPBOX_GATE_SECRET: ${SLOPBOX_GATE_SECRET}
       GATE_OPEN_HOURS: ${GATE_OPEN_HOURS:-4}
       GATE_GRACE_MINUTES: ${GATE_GRACE_MINUTES:-60}
+      SLOPBOX_DEPLOY_TOKEN: ${SLOPBOX_DEPLOY_TOKEN:-}
+      WATCHTOWER_API_TOKEN: ${WATCHTOWER_API_TOKEN:-}
+      WATCHTOWER_URL: ${WATCHTOWER_URL:-http://watchtower:8080}
     volumes:
       - ./:/srv/repo:ro
       # Named volume (not an appdata folder) so it starts out writable by the hub's non-root user.
       - hub-data:/app/data
     labels:
       com.centurylinklabs.watchtower.enable: "true"
+      # Same update lock as the games, except that a hub that doesn't answer is allowed to update:
+      # it's broken, so a new image can only help.
+      com.centurylinklabs.watchtower.lifecycle.pre-update: >-
+        node -e "fetch('http://127.0.0.1:8080/update-allowed?id=hub').then(r=>process.exit(r.ok?0:75),()=>process.exit(0))"
     mem_limit: 256m
     cpus: 0.5
 
@@ -78,6 +86,8 @@ services:
       ADMIN_PASSWORD: ${QUICKPIC_ADMIN_PASSWORD:-}
     labels:
       com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.lifecycle.pre-update: >-
+        node -e "fetch('http://hub:8080/update-allowed?id=quickpic').then(r=>process.exit(r.ok?0:75),()=>process.exit(75))"
     mem_limit: 512m
     cpus: 1.0
 

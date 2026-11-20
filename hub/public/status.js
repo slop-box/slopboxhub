@@ -15,6 +15,11 @@
       var ts = Number(n.getAttribute('data-ts'));
       if (ts) n.textContent = timeText(ts);
     });
+    // Admin page update history: these can be days old, so include the date.
+    Array.prototype.forEach.call(document.querySelectorAll('[data-when]'), function (n) {
+      var ts = Number(n.getAttribute('data-when'));
+      if (ts) n.textContent = new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    });
     Array.prototype.forEach.call(document.querySelectorAll('[data-left]'), function (n) {
       var ts = Number(n.getAttribute('data-left'));
       if (ts) n.textContent = leftText(ts);

@@ -173,6 +173,15 @@ footer p { margin: 0.25rem 0; }
 }
 .link-button:focus { outline: 4px solid var(--focus); outline-offset: 3px; }
 
+/* Admin page: one line per game in the Updates panel. */
+.updates { list-style: none; margin: 0 0 0.75rem; padding: 0; }
+.updates li { padding: 0.6rem 0; border-top: 1px solid var(--card-edge); }
+.updates li:first-child { border-top: 0; padding-top: 0; }
+.updates span { display: block; color: var(--muted); font-size: 0.9rem; }
+.updates span span { display: inline; font-size: inherit; }
+.updates .warn { color: var(--accent); }
+.updates .error { color: #ff8a8a; font-weight: 600; }
+
 /* Only show the remote hint on big screens, where a TV is likely. */
 .remote-hint { display: none; }
 @media (min-width: 1200px) and (hover: none), (min-width: 1200px) and (pointer: coarse) {
