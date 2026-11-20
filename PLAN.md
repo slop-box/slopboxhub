@@ -440,6 +440,23 @@ There are two tokens, so devs can never call Watchtower directly. The deploy URL
 >   - Check that exit code `75` skips the update without stopping the container, then the first two "Done when" items.
 >   - **Later, to turn manual deploys on:** follow "Manual deploys" in the README (tokens, org secrets, three more Watchtower settings, the network). Then do the two remaining Watchtower checks and the deploy items under "Done when".
 
+## Step 12: Apply hub merges automatically
+
+Watchtower only swaps images under containers that already exist. It never reads the compose file or pulls the repo. So a merged hub pull request needs someone on the server to pull the hub, run **Compose Up** and reload Caddy. [scripts/server-sync.sh](scripts/server-sync.sh) does that, run every 5 minutes by Unraid's **User Scripts** plugin:
+
+- It pulls the hub. If the compose file changed, it runs `docker compose up -d --remove-orphans`. If `proxy/` changed, it reloads Caddy.
+- It does nothing while games are open or in their grace period.
+- It never pulls newer images for running containers (Watchtower's job), so Caddy and cloudflared still only update by hand.
+- It pauses while the server's clone has local edits, such as a rollback pin.
+- If applying fails, it retries every run and sends an Unraid notification once per new error.
+
+- [x] Write the script. Shellcheck is clean, and it passes 15 scenarios against a real git remote and a fake `docker`: each kind of change, games open or in their grace period, a failed Compose Up and its retry, a local edit, a diverged clone, Compose Manager's override file, and a pull that rewrites the script itself.
+- [x] **Hub checks** run shellcheck on it.
+- [ ] Run it once by hand with games closed. Check that Compose doesn't re-create containers whose settings didn't change (README, "Automatic sync").
+- [ ] Add it to User Scripts on a `*/5 * * * *` schedule.
+
+**Done when:** a merged pull request that adds a game goes live within about 5 minutes, with no one on the server.
+
 ## Later (not needed yet)
 
 - **TV handoff:** the hub's TV page starts a game and passes the room on, so phones follow along without rescanning.

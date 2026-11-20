@@ -33,6 +33,10 @@ jobs:
       - name: Hub and party gate tests
         run: node hub/test.js
 
+      # It runs as root on the server every few minutes, so lint it before it lands there.
+      - name: Server sync script passes shellcheck
+        run: shellcheck scripts/server-sync.sh
+
       # Same Caddy image as the compose file. A broken Caddyfile would take every game down.
       - name: Caddyfile is valid
         run: >-

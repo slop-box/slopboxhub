@@ -21,6 +21,7 @@ If a developer pointed you at this file, walk them through it in order:
 |---|---|
 | A GitHub account in the `slop-box` org | `gh api user/memberships/orgs/slop-box --jq .state` prints `active` |
 | The GitHub CLI, signed in | `gh auth status` |
+| Push access to the hub (to send your pull request from a branch) | `gh api repos/slop-box/slopboxhub --jq .permissions.push` prints `true`. If it prints `false`, use a fork instead (Section 5). |
 | Git and Node 18 or newer | `git --version`, `node --version` |
 | Docker (optional) | Lets you test the image and run the hub checks locally. Without it, GitHub runs them for you. |
 
@@ -36,7 +37,7 @@ You don't need to know how the server works, but these facts explain the rules:
 
 - **Every game gets its own subdomain:** `https://<id>.<domain>`. It owns every path on it, so root paths like `/style.css` and `/ws` are fine.
 - **Players reach it through a proxy.** The phone is on `https://`, but your container only sees plain HTTP. Build every URL from `location.origin`, and use `wss://` for WebSockets when the page is on HTTPS.
-- **Games are closed until the host opens them for a party.** The hub's party gate does this in front of every game, so your game needs no code for it. When games are closed, visitors see a "Games are closed" page. That's expected, not a bug.
+- **Games are closed until the host opens them for a party.** The hub's party gate does this in front of every game, so your game needs no code for it. When games are closed, visitors see a "Games are closed" page. That's expected, not a bug. The one path that skips the gate is `/healthz`, so you can check that your game is up, and which version, at any time.
 - **The server pulls your image from GitHub's registry** (`ghcr.io/slop-box/<id>`) without logging in, so the image must be **public**. Your repo can still be private.
 - **Updates are automatic.** The server checks for a new image every couple of minutes, but waits while games are open, so nobody's round gets cut off.
 
@@ -73,6 +74,8 @@ npm run set-id -- <id>
 - Then build your game. The template's README says which files hold the game rules, the phone screen and the TV screen, and how to make a phone-only game.
 - **Public or private repo:** either works. Public repos get unlimited GitHub Actions minutes. Private repos share the org's 2,000 free minutes a month.
 
+If `gh repo create` fails with a permission error, members can't create repos in the org yet. Ask the server owner to turn it on (**Org settings → Member privileges → Repository creation**). Moving a repo in (option B) needs the same permission.
+
 ### B. Bring a game you already have
 
 **Move the repo into the org.** Transferring keeps its history, issues and stars:
@@ -92,7 +95,7 @@ To start fresh instead, create an empty repo in the org and push to it.
 | Rule | What to check or change |
 |---|---|
 | Listens on `$PORT` | `const PORT = Number(process.env.PORT) \|\| 3000`. Use any default, but remember it for Section 5. |
-| `GET /healthz` | Returns `200` once the game is ready. |
+| `GET /healthz` | Returns `200` once the game is ready. Also report the commit it was built from, e.g. `{"ok":true,"version":"<commit>"}` read from `process.env.GIT_SHA`, so you can check when an update is live (Section 6). |
 | Works behind HTTPS | No hard-coded hosts, ports or `http://`. Build URLs from `location.origin`. WebSockets use `(location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'`. |
 | Join QR codes | Use `PUBLIC_URL` if it's set, otherwise `location.origin`. Never a LAN IP. |
 | Pages | Players start at `/`. A TV page, if the game has one, is at `/tv`. |
@@ -112,6 +115,8 @@ RUN npm ci --omit=dev
 COPY . .
 RUN mkdir -p /app/data && chown node:node /app/data
 ENV NODE_ENV=production PORT=3000 DATA_DIR=/app/data
+ARG GIT_SHA=dev
+ENV GIT_SHA=$GIT_SHA
 EXPOSE 3000
 LABEL com.centurylinklabs.watchtower.enable="true"
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
@@ -121,6 +126,7 @@ CMD ["node", "server.js"]
 ```
 
 - Keep the `LABEL` in the final stage.
+- The publish workflow passes the commit in as the `GIT_SHA` build argument, and `/healthz` reports it.
 - `npm ci` needs a committed `package-lock.json`. A game with no dependencies can drop the `npm ci` line.
 - A `.dockerignore` with `node_modules` and `.git` keeps builds fast.
 
@@ -174,10 +180,12 @@ The shared workflow can also take:
 
 ## 5. Add your game to the hub
 
-In your clone of this repo, make a branch and add your game in three places. If you started from the template, its README has these snippets already filled in with your id.
+In your clone of this repo, make a branch from an up-to-date `main`, then add your game in three places. If you started from the template, its README has these snippets already filled in with your id.
 
 ```bash
-cd slopboxhub && git switch -c add-<id>
+cd slopboxhub
+git switch main && git pull     # start from the latest hub, so the pull request doesn't conflict with games added since
+git switch -c add-<id>
 ```
 
 **`games.json`:** add an entry to the list.
@@ -242,7 +250,8 @@ http://<id>.{$SLOPBOX_DOMAIN} {
 	reverse_proxy <id>:3000
 }
 ```
-`import gate` must come first. It keeps the game closed until the host opens Slop Box.
+- `import gate` must come first. It keeps the game closed until the host opens Slop Box.
+- Ports don't have to be unique: each game has its own container, so two games can both listen on 3000. Just make the port here match your game's.
 
 **Check, push and open the pull request:**
 ```bash
@@ -251,6 +260,13 @@ git add games.json docker-compose.yml proxy/Caddyfile .env.example
 git commit -m "Add <name>"
 git push -u origin add-<id>
 gh pr create --fill
+```
+
+**No push access to the hub** (the check in [What you need](#what-you-need) printed `false`)? Send the pull request from a fork instead. Run these in your clone, after the commit:
+```bash
+gh repo fork --remote                      # makes your fork "origin", and the hub "upstream"
+git push -u origin add-<id>
+gh pr create --repo slop-box/slopboxhub --head <your-username>:add-<id> --fill
 ```
 
 The **Hub checks** run on the pull request and must pass before it can merge. They catch:
@@ -266,9 +282,10 @@ The server owner is asked to review automatically.
 
 ## 6. After the merge
 
-The server owner puts the change on the server: they pull the hub, start your game (**Compose Up**) and reload the proxy. They also add any settings you sent them. Wait for them to say it's done.
+The server applies the merge by itself within about 5 minutes: it starts your game and adds its route. While games are open at a party, it waits until they close. If your game needs secrets or settings, the server owner adds them on the server. Until then, the game starts with them empty.
 
 Then test on the real address, `https://<id>.<domain>`. Ask the server owner for the domain, because it isn't written in any repo.
+- **First check that it's up**, which works even while games are closed: `curl -s https://<id>.<domain>/healthz` should print your game's `/healthz` answer. If it prints nothing, the address still redirects to the Slop Box page, so the merge isn't applied yet. Try again in a few minutes.
 - **"Games are closed"** means the party gate is shut. Ask the server owner to open the games while you test.
 - With a TV, open `/tv` on it and join by scanning its QR code with your phone. The QR code should show the `https://<id>.<domain>` address.
 - Check that live updates arrive and that a phone reconnects after its screen locks.
@@ -278,6 +295,12 @@ The landing page at `https://<domain>` now lists your game.
 ## Updating your game
 
 - **Push to `main`.** The workflow tests and publishes the new image, and the server picks it up within a few minutes.
+- **To see when it's live**, wait until `/healthz` reports the commit you pushed. It answers even while games are closed:
+  ```bash
+  want=$(git rev-parse HEAD)
+  until curl -s https://<id>.<domain>/healthz | grep -q "$want"; do sleep 20; done; echo "live: $want"
+  ```
+  This needs `/healthz` to report the version (the template's does). If games are open, it waits until they close.
 - **While games are open at a party**, the server waits and updates your game after they close, so nobody's round gets cut off. You don't need to do anything.
 - **Need it live sooner** (e.g. a bug at a party)? Ask the server owner. They can update one game by hand, even while games are open. Restarting the game ends any round in progress.
 - **Running the workflow from another branch** (**Actions → Publish → Run workflow**, pick the branch) publishes that branch as `:latest`, so the server picks it up like any update. The next push to `main` replaces it.
@@ -305,8 +328,9 @@ Saved data stays on the server whatever happens to the game:
 | You need | Why only they can do it |
 |---|---|
 | An invite to the `slop-box` org | Org owners send invites. |
+| Permission to create repos in the org, if it's off | It's an org setting. |
 | Your package made public, if you can't change it | It may need org-owner rights. |
-| Your hub pull request approved and put on the server | Only they can merge to the hub and run the server. |
+| Your hub pull request approved | Only they can merge to the hub. Once it's merged, the server applies it by itself. |
 | Restoring, copying or wiping your game's saved data | The volume is only reachable on the server. |
 | Secrets or settings set on the server | They live in the server's `.env`, never in a repo. |
 | The domain, and games opened for a test | The domain is kept out of the repos, and only the host can open the games. |

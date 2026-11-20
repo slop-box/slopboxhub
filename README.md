@@ -43,6 +43,7 @@ The games are closed until the host opens them. Go to `https://<domain>/admin` a
 - **Guests** never log in. Scanning a game's QR code just works while games are open.
 - **When the 4 hours end**, devices that joined during them keep working for another hour, so a round in progress can finish. New devices see a "closed" page. That page lets them in on its own as soon as the host opens the games again.
 - **Close now** shuts everyone out right away, including devices still in that extra hour.
+- **`/healthz` on every game skips the gate**, so devs can check that their game is up, and which commit it's running, while games are closed. It only answers health and version.
 
 ## Updates
 
@@ -126,20 +127,47 @@ Run these on the server, from the hub folder (`/mnt/user/appdata/slopbox/hub`). 
    printf '%s' /mnt/user/appdata/slopbox/hub > "$P/indirect"
    rm "$P/docker-compose.yml"
    ```
-   Then **Compose Up**. Don't edit the compose file from Compose Manager's editor, because it now edits the repo. Change it through a pull request, then `git pull` on the server.
+   Then **Compose Up**. Don't edit the compose file from Compose Manager's editor, because it now edits the repo. Change it through a pull request instead.
 4. In the Cloudflare Zero Trust dashboard, Slop Box's tunnel routes `<domain>` and `*.<domain>` to `http://caddy:80`. Its connector runs in this stack as `cloudflared`, using `CLOUDFLARE_TUNNEL_TOKEN` from `.env`.
+5. Turn on automatic sync (below), so merged pull requests go live without you.
 
-After a hub pull request is merged, update the server:
+### Automatic sync: merged changes go live by themselves
 
-```bash
-cd /mnt/user/appdata/slopbox/hub && git pull
-```
+Watchtower only swaps a new image in under a container that already exists, re-creating it from that container's old settings. It never reads the compose file or pulls the repo. So on its own, Watchtower can't:
+- start a new game
+- apply changed settings, labels, volumes or limits
+- remove a game
+- load a new Caddyfile or `games.json`
 
-Then, depending on what changed:
+[scripts/server-sync.sh](scripts/server-sync.sh) does that part. Every few minutes it pulls this repo. If anything changed, it applies it:
 
-| Changed | Do this |
+| Changed | It does |
 |---|---|
-| `games.json` | Nothing. The hub reads it on the next page load. |
-| `docker-compose.yml` | **Compose Up** in Compose Manager. |
-| `proxy/Caddyfile` | `docker exec slopboxhub-caddy-1 caddy reload --config /etc/caddy/Caddyfile` |
+| `games.json` | Nothing more. The hub reads it on the next page load. |
+| `docker-compose.yml` | `docker compose up -d --remove-orphans`. This starts new games, re-creates changed ones and removes deleted ones. Running containers keep their images, which are Watchtower's job, so Caddy and cloudflared still only update by hand. |
+| `proxy/` | Reloads Caddy. |
 | `hub/` | Nothing. The workflow publishes a new hub image, and Watchtower picks it up. |
+
+The script never changes anything while games are open or in their grace period. It applies the change after they close. Merging a pull request now puts it on the server, so review changes to the compose file with that in mind.
+
+**Setting it up:**
+1. Install the **User Scripts** plugin (Apps tab).
+2. Run it once by hand, with games closed, and read what it prints:
+   ```bash
+   bash /mnt/user/appdata/slopbox/hub/scripts/server-sync.sh
+   ```
+   The first run applies everything, so it runs Compose Up and reloads Caddy. With nothing new to apply, Compose should only re-create containers whose settings changed. If it re-creates everything, the script isn't passing Compose the same files as Compose Manager. The script adds Compose Manager's override file from `/boot/config/plugins/compose.manager/projects/slopboxhub/` when one exists. If yours lives elsewhere, set `COMPOSE_OVERRIDE` in the script's command.
+3. **Settings → User Scripts → Add New Script**, name it `slopbox-sync`, and make its script:
+   ```bash
+   #!/bin/bash
+   bash /mnt/user/appdata/slopbox/hub/scripts/server-sync.sh
+   ```
+4. Set its schedule to **Custom**, `*/5 * * * *` (every 5 minutes), then **Apply**.
+
+**Living with it:**
+- **Its output** is under **Show Log** in User Scripts. If applying a change fails, you get an Unraid notification, once per new error. It tries again every run.
+- **Local edits pause it.** While the clone has changes of its own, e.g. a rollback pin, it changes nothing and says so in its log. `git checkout docker-compose.yml` undoes the pin and resumes it.
+- **To apply during a party anyway:** `SYNC_FORCE=1 bash /mnt/user/appdata/slopbox/hub/scripts/server-sync.sh`.
+- **A game you stopped by hand** starts again the next time the compose file changes.
+
+**Without the script**, do the same by hand: `git pull` in the hub folder, then **Compose Up** if the compose file changed, then `docker exec slopboxhub-caddy-1 caddy reload --config /etc/caddy/Caddyfile` if the Caddyfile changed.

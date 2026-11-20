@@ -27,6 +27,8 @@ Every Slop Box game follows these rules. They let the hub run, route, gate and u
    LABEL com.centurylinklabs.watchtower.enable="true"
    ```
 7. **`GET /healthz` returns `200`** once the game is ready, and the Dockerfile's `HEALTHCHECK` uses it.
+   - It should also report the commit it was built from, e.g. `{"ok":true,"version":"<commit>"}`. The publish workflow passes the commit in as the `GIT_SHA` build argument (`ARG GIT_SHA` then `ENV GIT_SHA=$GIT_SHA` in the Dockerfile).
+   - `/healthz` is the one path the party gate lets through while games are closed, so it must not reveal anything else.
 8. **Secrets come from environment variables**, never from files in the image. Images are public.
 
 ## Pages
