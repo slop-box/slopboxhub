@@ -12,15 +12,13 @@
 # mid-party. It pauses while the clone has local edits, e.g. a rollback pin, until they're undone.
 # If applying fails, it tries again on every run and sends an Unraid notification once per new error.
 # When it applies a change, it sends an Unraid notification listing the commits. No-op runs send nothing.
-# Both also go to a phone through ntfy.sh when NTFY_TOPIC is set (no account or token needed).
+# Unraid's ntfy agent (Settings > Notification Settings) forwards both to a phone.
 #
 # Run it by hand to see what it does: bash scripts/server-sync.sh
 # Settings (environment variables, all optional):
 #   HUB_DIR           the hub clone                (default /mnt/user/appdata/slopbox/hub)
 #   COMPOSE_OVERRIDE  Compose Manager's override   (default its slopboxhub project folder; used if it exists)
 #   SYNC_FORCE=1      apply even while games are open
-#   NTFY_TOPIC        ntfy.sh topic for phone notifications (none sent if unset). Keep it out of the repo:
-#                     anyone who knows the name can read and post to it.
 
 # Everything is inside main(), which bash reads in full before running it. The git pull below can
 # replace this file while it runs; without the function, bash would go on reading the new file.
@@ -128,17 +126,11 @@ problem() {
   return 0
 }
 
-# notify <normal|warning|alert> <subject> <description>: an Unraid notification (web UI), plus a
-# phone push through ntfy.sh if NTFY_TOPIC is set. Neither failing stops the script.
+# Unraid notification: notify <normal|warning|alert> <subject> <description>. Unraid forwards these
+# to its enabled notification agents (we use ntfy, so they reach a phone).
 notify() {
   local n=/usr/local/emhttp/webGui/scripts/notify
   [ -x "$n" ] && "$n" -e "Slop Box sync" -s "$2" -d "$3" -i "$1"
-  if [ -n "${NTFY_TOPIC:-}" ]; then
-    local priority=default
-    [ "$1" = alert ] && priority=high
-    curl -fsS -m 10 -H "Title: $2" -H "Priority: $priority" --data-binary "$3" \
-      "https://ntfy.sh/$NTFY_TOPIC" >/dev/null || log "Couldn't send the ntfy notification."
-  fi
   return 0
 }
 
