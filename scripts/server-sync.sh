@@ -87,8 +87,8 @@ main() {
       problem "docker compose up failed. It tries again next run. $(tail -n 5 <<<"$out")"
       return 1
     fi
+    printf '%s\n' "$out" | grep -E 'Created|Recreated|Started|Removed' | sed 's/^/  /' || true
     applied=$(printf '%s\n' "$out" | grep -E 'Created|Recreated|Started|Removed' | sed 's/^ *//' || true)
-    [ -n "$applied" ] && sed 's/^/  /' <<<"$applied"
   fi
 
   if grep -q '^proxy/' <<<"$changed"; then
