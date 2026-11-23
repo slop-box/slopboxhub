@@ -16,5 +16,14 @@
     "extraDevices": [],
     "blurb": "Argue nonsense from your phone while the crowd pelts you with tomatoes.",
     "repo": "https://github.com/slop-box/debatebros"
+  },
+  {
+    "id": "bank",
+    "name": "Bank",
+    "players": "2+",
+    "needsTv": true,
+    "extraDevices": ["scorekeeper phone"],
+    "blurb": "Push your luck: keep rolling to grow the BANK, but call BANK before a 7 wipes it out.",
+    "repo": "https://github.com/slop-box/bank"
   }
 ]

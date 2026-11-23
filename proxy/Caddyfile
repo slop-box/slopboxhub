@@ -39,6 +39,11 @@ http://debatebros.{$SLOPBOX_DOMAIN} {
 	reverse_proxy debatebros:3001
 }
 
+http://bank.{$SLOPBOX_DOMAIN} {
+	import gate
+	reverse_proxy bank:3000
+}
+
 # Anything else under the domain (typos, removed games) goes to the hub.
 http:// {
 	redir https://{$SLOPBOX_DOMAIN} 302

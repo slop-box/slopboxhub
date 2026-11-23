@@ -107,3 +107,14 @@ services:
         node -e "fetch('http://hub:8080/update-allowed?id=debatebros').then(r=>process.exit(r.ok?0:75),()=>process.exit(75))"
     mem_limit: 512m
     cpus: 1.0
+
+  bank:
+    image: ghcr.io/slop-box/bank:latest
+    restart: unless-stopped
+    networks: [slopbox]
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.lifecycle.pre-update: >-
+        node -e "fetch('http://hub:8080/update-allowed?id=bank').then(r=>process.exit(r.ok?0:75),()=>process.exit(75))"
+    mem_limit: 512m
+    cpus: 1.0
