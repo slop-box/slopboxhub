@@ -449,6 +449,7 @@ Watchtower only swaps images under containers that already exist. It never reads
 - It never pulls newer images for running containers (Watchtower's job), so Caddy and cloudflared still only update by hand.
 - It pauses while the server's clone has local edits, such as a rollback pin.
 - If applying fails, it retries every run and sends an Unraid notification once per new error.
+- When it applies a change, it sends an Unraid notification listing the merged commits. Runs with nothing new send nothing. With `NTFY_TOPIC` set, both also go to phones through ntfy.sh (no account or token).
 
 - [x] Write the script. Shellcheck is clean, and it passes 15 scenarios against a real git remote and a fake `docker`: each kind of change, games open or in their grace period, a failed Compose Up and its retry, a local edit, a diverged clone, Compose Manager's override file, and a pull that rewrites the script itself.
 - [x] **Hub checks** run shellcheck on it.

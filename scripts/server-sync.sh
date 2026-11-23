@@ -11,12 +11,16 @@
 # It waits while games are open (or in their grace period), so a merge never restarts a game
 # mid-party. It pauses while the clone has local edits, e.g. a rollback pin, until they're undone.
 # If applying fails, it tries again on every run and sends an Unraid notification once per new error.
+# When it applies a change, it sends an Unraid notification listing the commits. No-op runs send nothing.
+# Both also go to a phone through ntfy.sh when NTFY_TOPIC is set (no account or token needed).
 #
 # Run it by hand to see what it does: bash scripts/server-sync.sh
 # Settings (environment variables, all optional):
 #   HUB_DIR           the hub clone                (default /mnt/user/appdata/slopbox/hub)
 #   COMPOSE_OVERRIDE  Compose Manager's override   (default its slopboxhub project folder; used if it exists)
 #   SYNC_FORCE=1      apply even while games are open
+#   NTFY_TOPIC        ntfy.sh topic for phone notifications (none sent if unset). Keep it out of the repo:
+#                     anyone who knows the name can read and post to it.
 
 # Everything is inside main(), which bash reads in full before running it. The git pull below can
 # replace this file while it runs; without the function, bash would go on reading the new file.
@@ -67,7 +71,7 @@ main() {
   fi
 
   # What changed since the last commit that was fully applied. On the first run, apply everything.
-  local changed
+  local changed applied=""
   if [ -n "$synced" ] && git cat-file -e "$synced^{commit}" 2>/dev/null; then
     changed=$(git diff --name-only "$synced" "$head")
   else
@@ -83,7 +87,8 @@ main() {
       problem "docker compose up failed. It tries again next run. $(tail -n 5 <<<"$out")"
       return 1
     fi
-    printf '%s\n' "$out" | grep -E 'Created|Recreated|Started|Removed' | sed 's/^/  /' || true
+    applied=$(printf '%s\n' "$out" | grep -E 'Created|Recreated|Started|Removed' | sed 's/^ *//' || true)
+    [ -n "$applied" ] && sed 's/^/  /' <<<"$applied"
   fi
 
   if grep -q '^proxy/' <<<"$changed"; then
@@ -92,11 +97,21 @@ main() {
       problem "caddy reload failed, so Caddy is still on the old routes. It tries again next run. Check: docker logs $project-caddy-1"
       return 1
     fi
+    applied+=${applied:+$'\n'}"Caddy reloaded"
   fi
 
   echo "$head" > "$synced_file"
   rm -f "$error_file"
   log "Server is on $(short "$head")."
+
+  # Tell the phone what landed: the merged commits, then what the server did about them.
+  local commits
+  if [ -n "$synced" ] && git cat-file -e "$synced^{commit}" 2>/dev/null; then
+    commits=$(git log --format='- %s' "$synced..$head")
+  else
+    commits=$(git log -1 --format='- %s' "$head")
+  fi
+  notify normal "Slop Box: server updated to $(short "$head")" "$commits${applied:+$'\n'$applied}"
 }
 
 log() { echo "$(date '+%F %T') $*"; }
@@ -108,8 +123,21 @@ problem() {
   log "ERROR: $*"
   if [ "$(cat .git/slopbox-sync-error 2>/dev/null)" != "$*" ]; then
     printf '%s' "$*" > .git/slopbox-sync-error
-    local notify=/usr/local/emhttp/webGui/scripts/notify
-    [ -x "$notify" ] && "$notify" -e "Slop Box sync" -s "Slop Box: hub change not applied" -d "$*" -i alert
+    notify alert "Slop Box: hub change not applied" "$*"
+  fi
+  return 0
+}
+
+# notify <normal|warning|alert> <subject> <description>: an Unraid notification (web UI), plus a
+# phone push through ntfy.sh if NTFY_TOPIC is set. Neither failing stops the script.
+notify() {
+  local n=/usr/local/emhttp/webGui/scripts/notify
+  [ -x "$n" ] && "$n" -e "Slop Box sync" -s "$2" -d "$3" -i "$1"
+  if [ -n "${NTFY_TOPIC:-}" ]; then
+    local priority=default
+    [ "$1" = alert ] && priority=high
+    curl -fsS -m 10 -H "Title: $2" -H "Priority: $priority" --data-binary "$3" \
+      "https://ntfy.sh/$NTFY_TOPIC" >/dev/null || log "Couldn't send the ntfy notification."
   fi
   return 0
 }

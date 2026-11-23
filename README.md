@@ -163,9 +163,16 @@ The script never changes anything while games are open or in their grace period.
    bash /mnt/user/appdata/slopbox/hub/scripts/server-sync.sh
    ```
 4. Set its schedule to **Custom**, `*/5 * * * *` (every 5 minutes), then **Apply**.
+5. **Phone notifications (optional):** pick a hard-to-guess [ntfy](https://ntfy.sh) topic name (anyone who knows it can read and post to it, so don't put it in this repo) and add it above the script line:
+   ```bash
+   #!/bin/bash
+   export NTFY_TOPIC=your-hard-to-guess-topic
+   bash /mnt/user/appdata/slopbox/hub/scripts/server-sync.sh
+   ```
+   No ntfy account or token is needed. To get the notifications, install the ntfy app and subscribe to that topic. Anyone else who wants them can ask the server owner for the topic name. Test it with `curl -d test https://ntfy.sh/your-hard-to-guess-topic`.
 
 **Living with it:**
-- **Its output** is under **Show Log** in User Scripts. If applying a change fails, you get an Unraid notification, once per new error. It tries again every run.
+- **Its output** is under **Show Log** in User Scripts. When it applies a change, you get an Unraid notification listing the merged commits, plus an ntfy push if `NTFY_TOPIC` is set; runs with nothing new send nothing. If applying a change fails, you get one too, once per new error. It tries again every run.
 - **Local edits pause it.** While the clone has changes of its own, e.g. a rollback pin, it changes nothing and says so in its log. `git checkout docker-compose.yml` undoes the pin and resumes it.
 - **To apply during a party anyway:** `SYNC_FORCE=1 bash /mnt/user/appdata/slopbox/hub/scripts/server-sync.sh`.
 - **A game you stopped by hand** starts again the next time the compose file changes.
