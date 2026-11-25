@@ -92,7 +92,8 @@ function createGate({ password, secret, dataDir, openMs, graceMs, now = Date.now
     return !!d && d.t === 'pass' && d.w === state.windowId && phase() !== 'closed';
   };
 
-  const ADMIN_MS = 12 * 3600e3;
+  // Admin logins last 1 hour from when the password was typed; after that it must be typed again.
+  const ADMIN_MS = 3600e3;
   const newAdminSession = () => sign({ t: 'admin', exp: now() + ADMIN_MS });
   const adminValid = (cookie) => {
     const d = verify(cookie);

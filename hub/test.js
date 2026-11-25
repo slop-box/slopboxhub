@@ -11,6 +11,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const assert = require('assert');
+const { createGate } = require('./gate');
 
 const PORT = 8798;
 const PORT2 = 8799;
@@ -90,6 +91,7 @@ const hubs = [];
 let watchtower = null;
 async function main() {
   try {
+    await adminExpiryTest();
     await gateTests();
     await updateTests();
     console.log(`PASS (${passed} checks)`);
@@ -102,6 +104,20 @@ async function main() {
     if (watchtower) watchtower.close();
     for (const d of [dataDir, dataDir2]) fs.rmSync(d, { recursive: true, force: true });
   }
+}
+
+// The admin login runs out an hour after the password was typed, using a fake clock.
+async function adminExpiryTest() {
+  let t = 1e12;
+  const gate = createGate({ password: PASSWORD, secret: 's', dataDir, openMs: 1, graceMs: 1, now: () => t });
+  await step('admin login lasts 1 hour, then needs the password again', async () => {
+    const session = gate.newAdminSession();
+    assert.ok(gate.adminValid(session));
+    t += 59 * 60e3;
+    assert.ok(gate.adminValid(session));
+    t += 2 * 60e3;
+    assert.ok(!gate.adminValid(session));
+  });
 }
 
 async function gateTests() {
