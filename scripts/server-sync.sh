@@ -130,7 +130,11 @@ problem() {
 # to its enabled notification agents (we use ntfy, so they reach a phone).
 notify() {
   local n=/usr/local/emhttp/webGui/scripts/notify
-  [ -x "$n" ] && "$n" -e "Slop Box sync" -s "$2" -d "$3" -i "$1"
+  if [ ! -x "$n" ]; then
+    log "Couldn't send the notification: $n isn't there."
+  elif ! "$n" -e "Slop Box sync" -s "$2" -d "$3" -i "$1"; then
+    log "Couldn't send the notification: notify exited with an error."
+  fi
   return 0
 }
 
