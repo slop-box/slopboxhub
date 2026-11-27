@@ -44,6 +44,11 @@ http://bank.{$SLOPBOX_DOMAIN} {
 	reverse_proxy bank:3000
 }
 
+http://scoreboard.{$SLOPBOX_DOMAIN} {
+	import gate
+	reverse_proxy scoreboard:3000
+}
+
 # Anything else under the domain (typos, removed games) goes to the hub.
 http:// {
 	redir https://{$SLOPBOX_DOMAIN} 302
