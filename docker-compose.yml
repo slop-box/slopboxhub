@@ -129,3 +129,14 @@ services:
         node -e "fetch('http://hub:8080/update-allowed?id=scoreboard').then(r=>process.exit(r.ok?0:75),()=>process.exit(75))"
     mem_limit: 512m
     cpus: 1.0
+
+  aviations-anonymous:
+    image: ghcr.io/slop-box/aviations-anonymous:latest
+    restart: unless-stopped
+    networks: [slopbox]
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.lifecycle.pre-update: >-
+        node -e "fetch('http://hub:8080/update-allowed?id=aviations-anonymous').then(r=>process.exit(r.ok?0:75),()=>process.exit(75))"
+    mem_limit: 512m
+    cpus: 1.0

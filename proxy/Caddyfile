@@ -49,6 +49,11 @@ http://scoreboard.{$SLOPBOX_DOMAIN} {
 	reverse_proxy scoreboard:3000
 }
 
+http://aviations-anonymous.{$SLOPBOX_DOMAIN} {
+	import gate
+	reverse_proxy aviations-anonymous:3000
+}
+
 # Anything else under the domain (typos, removed games) goes to the hub.
 http:// {
 	redir https://{$SLOPBOX_DOMAIN} 302
