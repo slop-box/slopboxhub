@@ -34,5 +34,14 @@
     "extraDevices": ["scorekeeper phone"],
     "blurb": "No rules, just scores: keep score for any game on your phone and show it on the TV.",
     "repo": "https://github.com/slop-box/scoreboard"
+  },
+  {
+    "id": "aviations-anonymous",
+    "name": "Aviations Anonymous (beta)",
+    "players": "4+",
+    "needsTv": true,
+    "extraDevices": [],
+    "blurb": "Pilots fly blind from their phones while controllers shout runways and gates. In beta: expect crashes.",
+    "repo": "https://github.com/slop-box/aviations-anonymous"
   }
 ]
