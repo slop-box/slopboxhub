@@ -25,5 +25,14 @@
     "extraDevices": ["scorekeeper phone"],
     "blurb": "Push your luck: keep rolling to grow the BANK, but call BANK before a 7 wipes it out.",
     "repo": "https://github.com/slop-box/bank"
+  },
+  {
+    "id": "scoreboard",
+    "name": "Scoreboard",
+    "players": "1+",
+    "needsTv": true,
+    "extraDevices": ["scorekeeper phone"],
+    "blurb": "No rules, just scores: keep score for any game on your phone and show it on the TV.",
+    "repo": "https://github.com/slop-box/scoreboard"
   }
 ]
